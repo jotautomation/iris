@@ -2,6 +2,12 @@ from distutils.dir_util import copy_tree
 import os
 import json
 import test_report_writer
+import argparse
+
+parser = argparse.ArgumentParser(description='Super simple test sequencer.')
+parser.add_argument('--single_run', '-s',
+                    help='Run only once', action="store_true")
+
 
 if not os.path.isdir('./test_definitions'):
     my_dir = os.path.dirname(os.path.realpath(__file__))
@@ -10,6 +16,7 @@ if not os.path.isdir('./test_definitions'):
     import sys
     sys.exit()
 
+args = parser.parse_args()
 
 from test_definitions import *
 
@@ -43,6 +50,7 @@ while run:
 
     test_report_writer.create_report(json.dumps(results), 'result.html')
 
-    run = False
+    if single_run:
+        run = False
 
 shutdown()
