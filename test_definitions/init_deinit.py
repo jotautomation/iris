@@ -1,0 +1,16 @@
+"""Initializations and deinitializations"""
+
+def boot_up():
+    print("Executing initialization")
+
+
+def finalize_test():
+    print("Testing ready")
+
+
+def prepare_test():
+    print("Preparing to test")
+
+
+def shutdown():
+    print("Shutdown")
