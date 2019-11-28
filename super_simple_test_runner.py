@@ -37,6 +37,7 @@ while run:
             test_instance = globals()[test_case]()
             test_instance.test(INSTRUMENTS)
             results[test_case] = test_instance.result_handler(LIMITS[test_case])
+        finalize_test(overallresult, DUT, INSTRUMENTS)
 
         finalize_test()
 
