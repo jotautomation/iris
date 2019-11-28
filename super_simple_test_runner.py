@@ -29,20 +29,24 @@ run = True
 while run:
 
     results = {}
+    overallresult = True
 
     try:
         DUT = prepare_test()
 
         results["DUT"] = DUT
-        prepare_test()
 
         for test_case in TESTS:
             test_instance = globals()[test_case]()
             test_instance.test(INSTRUMENTS, DUT)
             results[test_case] = test_instance.result_handler(LIMITS[test_case])
+            if not all([r[1]['result'] for r in results[test_case].items()]):
+                overallresult = False
+
+
         finalize_test(overallresult, DUT, INSTRUMENTS)
 
-        finalize_test()
+        results['Overall result'] = overallresult
 
     except Error as e:
         # TODO: write error to report
