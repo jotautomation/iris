@@ -1,4 +1,5 @@
 from distutils.dir_util import copy_tree
+import exceptions
 import os
 import json
 import test_report_writer
@@ -58,7 +59,7 @@ while run:
 
     test_report_writer.create_report(json.dumps(results), 'result.html')
 
-    if single_run:
+    if args.single_run:
         run = False
 
 shutdown()
