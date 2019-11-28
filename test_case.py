@@ -11,7 +11,7 @@ class TestCase(ABC):
         self.results = {}
 
     @abstractmethod
-    def test(self):
+    def test(self, instruments, dut):
         """Contains the test sequence"""
 
     def new_result(self, name, result):

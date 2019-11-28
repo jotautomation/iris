@@ -31,11 +31,14 @@ while run:
     results = {}
 
     try:
+        DUT = prepare_test()
+
+        results["DUT"] = DUT
         prepare_test()
 
         for test_case in TESTS:
             test_instance = globals()[test_case]()
-            test_instance.test(INSTRUMENTS)
+            test_instance.test(INSTRUMENTS, DUT)
             results[test_case] = test_instance.result_handler(LIMITS[test_case])
         finalize_test(overallresult, DUT, INSTRUMENTS)
 
