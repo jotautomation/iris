@@ -1,6 +1,17 @@
+from distutils.dir_util import copy_tree
+import os
 import json
-from test_definitions import *
 import test_report_writer
+
+if not os.path.isdir('./test_definitions'):
+    my_dir = os.path.dirname(os.path.realpath(__file__))
+    copy_tree(my_dir + '/empty_test_definitions', './test_definitions')
+    print("Empty test definitions created")
+    import sys
+    sys.exit()
+
+
+from test_definitions import *
 
 boot_up()
 
