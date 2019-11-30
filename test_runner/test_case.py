@@ -23,11 +23,10 @@ class TestCase(ABC):
         tmp_result = {}
 
         for result in self.results.items():
-            tmp_result[result[0]] = {"limit": inspect.getsource(limits[result[0]]),
-                                     "measurement": result[1],
-                                     "result": limits[result[0]](result[1])}
+            tmp_result[result[0]] = {
+                "limit": inspect.getsource(limits[result[0]]),
+                "measurement": result[1],
+                "result": limits[result[0]](result[1]),
+            }
 
         return tmp_result
-
-
-

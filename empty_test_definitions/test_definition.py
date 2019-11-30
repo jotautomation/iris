@@ -1,5 +1,5 @@
 """Defines tests and their order"""
 
-TESTS = ['first', 'second', 'third', 'fourth']
+TESTS = ["first", "second", "third", "fourth"]
 
-SKIP = ['first', 'third', 'fourth']
+SKIP = ["first", "third", "fourth"]
