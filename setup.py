@@ -2,10 +2,6 @@ from setuptools import setup, find_packages
 import glob
 
 """
-IMPORTANT!
-Use python 2 to run setuptools. Otherwise this will end up as an package
-at PyPi and we want it to be a module.
-
 Commands to publish
 python setup.py sdist bdist_wheel
 twine upload dist/*
@@ -17,7 +13,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="super_simple_test_sequencer",
-    version="0.1.0",
+    version="0.1.1",
     license="MIT License",
     author="JOT Automation Ltd.",
     author_email="rami.rahikkala@jotautomation.com",
