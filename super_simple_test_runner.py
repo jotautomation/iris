@@ -24,6 +24,7 @@ if not os.path.isdir("./test_definitions"):
 args = parser.parse_args()
 
 sys.path.append(os.getcwd())
+sys.path.append(os.path.join(os.getcwd(), 'test_definitions'))
 from test_definitions import *
 
 boot_up()
