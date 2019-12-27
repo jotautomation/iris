@@ -8,7 +8,6 @@ import json
 import argparse
 import sys
 from distutils.dir_util import copy_tree
-from test_runner import test_report_writer
 from test_runner import exceptions
 
 
@@ -40,6 +39,7 @@ try:
     import test_definitions
 except ImportError:
     print("No test definitions defined. Create empty definitions with --create argument.")
+    sys.exit(-1)
 
 test_definitions.boot_up()
 
@@ -76,7 +76,7 @@ while RUN:
     finally:
         pass
 
-    test_report_writer.create_report(json.dumps(RESULTS), "result.html")
+    test_definitions.create_report(json.dumps(RESULTS), DUT)
 
     if ARGS.single_run:
         RUN = False
