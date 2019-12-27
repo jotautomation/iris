@@ -1,58 +1,72 @@
 #! /usr/bin/python
-from distutils.dir_util import copy_tree
-from test_runner import exceptions
+"""
+Test sequencer for any production testing
+"""
+
 import os
 import json
-from test_runner import test_report_writer
 import argparse
 import sys
+from distutils.dir_util import copy_tree
+from test_runner import test_report_writer
+from test_runner import exceptions
 
 
-parser = argparse.ArgumentParser(description="Super simple test sequencer.")
-parser.add_argument("--single_run", "-s", help="Run only once", action="store_true")
+PARSER = argparse.ArgumentParser(description="Super simple test sequencer.")
+PARSER.add_argument("--single_run", "-s", help="Run only once", action="store_true")
+PARSER.add_argument(
+    "--create", "-c", help="Creates empty/example test definitions", action="store_true"
+)
 
+ARGS = PARSER.parse_args()
 
-if not os.path.isdir("./test_definitions"):
+if ARGS.create:
+    if os.path.isdir("./test_definitions"):
+        print("test_definitions folder already exists")
+        sys.exit(-1)
+
     import empty_test_definitions
 
     copy_tree(empty_test_definitions.__path__[0], "./test_definitions")
     print("Empty test definitions created")
-    import sys
 
     sys.exit()
 
-args = parser.parse_args()
 
 sys.path.append(os.getcwd())
 sys.path.append(os.path.join(os.getcwd(), 'test_definitions'))
-from test_definitions import *
 
-boot_up()
+try:
+    import test_definitions
+except ImportError:
+    print("No test definitions defined. Create empty definitions with --create argument.")
 
-TESTS = [t for t in TESTS if t not in SKIP]
+test_definitions.boot_up()
 
-run = True
+TESTS = [t for t in test_definitions.TESTS if t not in test_definitions.SKIP]
 
-while run:
+RUN = True
 
-    results = {}
-    overallresult = True
+while RUN:
+
+    RESULTS = {}
+    OVERALL_RESULTS = True
 
     try:
-        DUT = prepare_test()
+        DUT = test_definitions.prepare_test()
 
-        results["DUT"] = DUT
+        RESULTS["DUT"] = DUT
 
         for test_case in TESTS:
-            test_instance = globals()[test_case]()
-            test_instance.test(INSTRUMENTS, DUT)
-            results[test_case] = test_instance.result_handler(LIMITS[test_case])
-            if not all([r[1]["result"] for r in results[test_case].items()]):
-                overallresult = False
+            test_instance = getattr(test_definitions, test_case)()
+            test_instance.test(test_definitions.INSTRUMENTS, DUT)
+            RESULTS[test_case] = test_instance.result_handler(test_definitions.LIMITS[test_case])
+            if not all([r[1]["result"] for r in RESULTS[test_case].items()]):
+                OVERALL_RESULTS = False
 
-        finalize_test(overallresult, DUT, INSTRUMENTS)
+        test_definitions.finalize_test(OVERALL_RESULTS, DUT, test_definitions.INSTRUMENTS)
 
-        results["Overall result"] = overallresult
+        RESULTS["Overall result"] = OVERALL_RESULTS
 
     except exceptions.Error as e:
         # TODO: write error to report
@@ -62,9 +76,9 @@ while run:
     finally:
         pass
 
-    test_report_writer.create_report(json.dumps(results), "result.html")
+    test_report_writer.create_report(json.dumps(RESULTS), "result.html")
 
-    if args.single_run:
-        run = False
+    if ARGS.single_run:
+        RUN = False
 
-shutdown()
+test_definitions.shutdown()
