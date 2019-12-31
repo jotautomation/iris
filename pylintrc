@@ -1,5 +1,5 @@
 [MASTER]
 
-disable=no-member
+disable=no-member, too-few-public-methods, too-many-arguments
 
 good-names=i,j,k,ex,Run,_,pk,x,y,f,N,Ts,T,t
