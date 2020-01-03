@@ -20,7 +20,7 @@ PARSER.add_argument("--single_run", "-s", help="Run only once", action="store_tr
 PARSER.add_argument(
     "--create", "-c", help="Creates empty/example test definitions", action="store_true"
 )
-PARSER.add_argument("--report-off", "-r", help="Don't create test report", action="store_true")
+PARSER.add_argument("--report_off", "-r", help="Don't create test report", action="store_true")
 PARSER.add_argument(
     "--listener",
     "-l",
@@ -43,12 +43,13 @@ if ARGS.create:
 
     sys.exit()
 
+
 CONTROL = runner.get_test_control()
 
 CONTROL['run'].set()
 
 if ARGS.single_run:
-    CONTROL.single_run = True
+    CONTROL['single_run'] = True
 
 if ARGS.report_off:
     CONTROL['report_off'] = True
@@ -61,16 +62,31 @@ RUNNER_THREAD = threading.Thread(
 
 RUNNER_THREAD.start()
 
+
+def message_queue_worker(message_queue, message_handler):
+    while True:
+        msg = message_queue.get()
+        for handler in message_handler:
+            handler(msg)
+
+
+MESSAGE_HANDLER = [print]
+
+MESSAGE_THREAD = threading.Thread(
+    target=message_queue_worker, args=(MESSAGE_QUEUE, MESSAGE_HANDLER), name='message_thread'
+)
+
+MESSAGE_THREAD.start()
+
 if ARGS.listener:
     if ARGS.port:
         PORT = ARGS.port
 
-    CONTROL.run.clear()
+    CONTROL['run'].clear()
 
-    listener.create_listener(PORT, CONTROL)
+    listener.create_listener(PORT, CONTROL, MESSAGE_HANDLER)
     tornado.ioloop.IOLoop.current().start()
 
-while True:
-    print(MESSAGE_QUEUE.get())
+MESSAGE_HANDLER = print
 
 RUNNER_THREAD.join()

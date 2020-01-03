@@ -2,7 +2,9 @@
 
 import logging
 import os
+import asyncio
 import tornado.web
+import tornado.websocket
 
 RESP_CONTENT_TYPE = 'application/vnd.siren+json; charset=UTF-8'
 
@@ -12,7 +14,7 @@ RESP_CONTENT_TYPE = 'application/vnd.siren+json; charset=UTF-8'
 class SstsRequestHandler(tornado.web.RequestHandler):
     """Base class for REST API calls"""
 
-    def initialize(self, test_control):
+    def initialize(self, test_control, **kwargs):
         """Initialize is called when tornado.web.Application is created"""
         self.logger = logging.getLogger(self.__class__.__name__)  # pylint: disable=W0201
         # Disable tornado access logging by default
@@ -139,14 +141,56 @@ class UiEntryHandler(tornado.web.StaticFileHandler):
         return absolute_path
 
 
-def create_listener(port, test_control):
+class MessageWebsocketHandler(tornado.websocket.WebSocketHandler):
+    """
+    Note that Tornado uses asyncio. Since we are using threads on our backend
+    we need to use call_soon_threadsafe to get messages through.
+    """
+
+    def initialize(self, message_handlers, **kwargs):
+        """Initialize is called when tornado.web.Application is created"""
+        message_handlers.append(self.websocket_signal_handler)  # pylint: disable=W0201
+
+        self.loop = asyncio.get_event_loop()  # pylint: disable=W0201
+
+    def websocket_signal_handler(self, message):  # pylint: disable=W0613
+        """Sends application state changes through websocket"""
+
+        self.loop.call_soon_threadsafe(self.write_message, message)
+
+    def open(self, *args: str, **kwargs: str):
+        """Called when websocket is opened"""
+
+        pass
+
+    def on_close(self):
+        """Called when websocket is closed"""
+
+        pass
+
+    def on_message(self, message):
+        """Called when message comes from client through websocket"""
+        self.write_message("echo: %r" % message)
+
+    def check_origin(self, origin):  # pylint: disable=R0201, W0613
+        """Checks whether websocket connection from origin is allowed.
+
+        We will allow all connection which is actually potential safety risk. See:
+        https://www.tornadoweb.org/en/stable/websocket.html#tornado.websocket.WebSocketHandler.check_origin
+        """
+        return True
+
+
+
+def create_listener(port, test_control, message_handlers):
     """Setup and create listener"""
-    init = {'test_control': test_control}
+    init = {'test_control': test_control, 'message_handlers': message_handlers}
     app = tornado.web.Application(
         [
+            (r'/api/websocket/messagequeue', MessageWebsocketHandler, init),
             (r"/api", ApiRootHandler, init),
-            (r"/api/test_control", TestRunnerHandler, init),
-            (r"/api/test_control/([0-9]+)", TestRunnerHandler, init),
+            (r"/api/testcontrol", TestRunnerHandler, init),
+            (r"/api/testcontrol/([0-9]+)", TestRunnerHandler, init),
             (r"/(.*\.(js|json|html|css))", tornado.web.StaticFileHandler, {'path': 'ui/build/'}),
             (r"/(.*)", UiEntryHandler, {'path': 'ui/build/', "default_filename": "index.html"}),
         ]
