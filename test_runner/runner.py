@@ -18,6 +18,7 @@ def get_test_control():
         'loop': None,
         'retest_on_fail': 0,
         'terminate': False,
+        'report_off': False,
         'run': threading.Event(),
     }
 
@@ -103,8 +104,11 @@ def run_test_runner(test_control, message_queue):
             pass
 
         report_progress("Create test report", dut=dut)
-        test_definitions.create_report(json.dumps(results), dut)
-        report_progress("Create test report", dut=dut)
+        if test_control['report_off']:
+            report_progress("Create test report", dut=dut, message="Test report creation skipped")
+        else:
+            test_definitions.create_report(json.dumps(results), dut)
+            report_progress("Create test report", dut=dut)
 
         if test_control['single_run']:
             test_control['terminate'] = True

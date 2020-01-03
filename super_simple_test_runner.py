@@ -20,6 +20,7 @@ PARSER.add_argument("--single_run", "-s", help="Run only once", action="store_tr
 PARSER.add_argument(
     "--create", "-c", help="Creates empty/example test definitions", action="store_true"
 )
+PARSER.add_argument("--report-off", "-r", help="Don't create test report", action="store_true")
 PARSER.add_argument(
     "--listener",
     "-l",
@@ -48,6 +49,9 @@ CONTROL['run'].set()
 
 if ARGS.single_run:
     CONTROL.single_run = True
+
+if ARGS.report_off:
+    CONTROL['report_off'] = True
 
 MESSAGE_QUEUE = Queue()
 
