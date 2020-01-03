@@ -57,6 +57,8 @@ if ARGS.listener:
     if ARGS.port:
         PORT = ARGS.port
 
+    CONTROL.run.clear()
+
     listener.create_listener(PORT, CONTROL)
     tornado.ioloop.IOLoop.current().start()
 
