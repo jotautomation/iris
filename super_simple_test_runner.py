@@ -7,6 +7,7 @@ import os
 import argparse
 import sys
 import threading
+from queue import Queue
 from distutils.dir_util import copy_tree
 from test_runner import runner
 import listener
@@ -43,12 +44,15 @@ if ARGS.create:
 
 CONTROL = runner.get_test_control()
 
+CONTROL['run'].set()
+
 if ARGS.single_run:
     CONTROL.single_run = True
 
+MESSAGE_QUEUE = Queue()
 
 RUNNER_THREAD = threading.Thread(
-    target=runner.run_test_runner, args=(CONTROL,), name='test_runner_thread'
+    target=runner.run_test_runner, args=(CONTROL, MESSAGE_QUEUE), name='test_runner_thread'
 )
 
 RUNNER_THREAD.start()
@@ -62,5 +66,7 @@ if ARGS.listener:
     listener.create_listener(PORT, CONTROL)
     tornado.ioloop.IOLoop.current().start()
 
+while True:
+    print(MESSAGE_QUEUE.get())
 
 RUNNER_THREAD.join()
