@@ -20,6 +20,9 @@ class SstsRequestHandler(tornado.web.RequestHandler):
         # Disable tornado access logging by default
         logging.getLogger('tornado.access').disabled = True
         self.test_control = test_control  # pylint: disable=W0201
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Headers", "x-requested-with, Content-Type")
+        self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
 
     def json_args(self):
         """Get json args (fields) from request body"""
@@ -70,6 +73,12 @@ class SstsRequestHandler(tornado.web.RequestHandler):
             data = self.text_plain()
 
         self.siren_response(self.handle_post(data, host, user, *args))
+
+    def options(self):
+        """Handle preflight request"""
+
+        self.set_status(204)
+        self.finish()
 
 
 class ApiRootHandler(SstsRequestHandler):
