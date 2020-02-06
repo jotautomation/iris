@@ -14,12 +14,13 @@ RESP_CONTENT_TYPE = 'application/vnd.siren+json; charset=UTF-8'
 class SstsRequestHandler(tornado.web.RequestHandler):
     """Base class for REST API calls"""
 
-    def initialize(self, test_control, **kwargs):
+    def initialize(self, test_control, test_definitions, **kwargs):
         """Initialize is called when tornado.web.Application is created"""
         self.logger = logging.getLogger(self.__class__.__name__)  # pylint: disable=W0201
         # Disable tornado access logging by default
         logging.getLogger('tornado.access').disabled = True
         self.test_control = test_control  # pylint: disable=W0201
+        self.test_definitions = test_definitions  # pylint: disable=W0201
         self.set_header("Access-Control-Allow-Origin", "*")
         self.set_header("Access-Control-Allow-Headers", "x-requested-with, Content-Type")
         self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
@@ -90,7 +91,6 @@ class ApiRootHandler(SstsRequestHandler):
     def handle_post(self, json_args, host, user, *args):  # pylint: disable=W0613
         """Handle /api post"""
 
-
 class TestRunnerHandler(SstsRequestHandler):
     """Handles starting of tests, returns status of tests etc."""
 
@@ -112,6 +112,15 @@ class TestRunnerHandler(SstsRequestHandler):
             else:
                 if key in self.test_control:
                     self.test_control[key] = value
+
+
+class DutsHandler(SstsRequestHandler):
+    """Handles starting of tests, returns status of tests etc."""
+
+    def handle_get(self, host, user, *args):
+        """Returns running test handlers"""
+
+        return {'duts': self.test_definitions.DUTS}
 
 
 class UiEntryHandler(tornado.web.StaticFileHandler):
@@ -190,14 +199,14 @@ class MessageWebsocketHandler(tornado.websocket.WebSocketHandler):
         return True
 
 
-
-def create_listener(port, test_control, message_handlers):
+def create_listener(port, test_control, message_handlers, test_definitions):
     """Setup and create listener"""
-    init = {'test_control': test_control, 'message_handlers': message_handlers}
+    init = {'test_control': test_control, 'message_handlers': message_handlers, 'test_definitions': test_definitions}
     app = tornado.web.Application(
         [
             (r'/api/websocket/messagequeue', MessageWebsocketHandler, init),
             (r"/api", ApiRootHandler, init),
+            (r"/api/duts", DutsHandler, init),
             (r"/api/testcontrol", TestRunnerHandler, init),
             (r"/api/testcontrol/([0-9]+)", TestRunnerHandler, init),
             (r"/(.*\.(js|json|html|css))", tornado.web.StaticFileHandler, {'path': 'ui/build/'}),

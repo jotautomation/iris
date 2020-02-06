@@ -45,6 +45,7 @@ if ARGS.create:
 
 
 CONTROL = runner.get_test_control()
+DEFINITIONS = runner.get_test_definitions()
 
 CONTROL['run'].set()
 
@@ -84,7 +85,7 @@ if ARGS.listener:
 
     CONTROL['run'].clear()
 
-    listener.create_listener(PORT, CONTROL, MESSAGE_HANDLER)
+    listener.create_listener(PORT, CONTROL, MESSAGE_HANDLER, DEFINITIONS)
     tornado.ioloop.IOLoop.current().start()
 
 MESSAGE_HANDLER = print

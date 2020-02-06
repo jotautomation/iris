@@ -23,6 +23,21 @@ def get_test_control():
     }
 
 
+def get_test_definitions():
+    """Returns test definitions"""
+
+    sys.path.append(os.getcwd())
+    sys.path.append(os.path.join(os.getcwd(), 'test_definitions'))
+
+    try:
+        import test_definitions
+    except ImportError:
+        print("No test definitions defined. Create empty definitions with --create argument.")
+        sys.exit(-1)
+
+    return test_definitions
+
+
 def run_test_runner(test_control, message_queue):
     """Starts the testing"""
 
@@ -46,14 +61,7 @@ def run_test_runner(test_control, message_queue):
     report_progress.start_time = None
     report_progress.previous_step = None
 
-    sys.path.append(os.getcwd())
-    sys.path.append(os.path.join(os.getcwd(), 'test_definitions'))
-
-    try:
-        import test_definitions
-    except ImportError:
-        print("No test definitions defined. Create empty definitions with --create argument.")
-        sys.exit(-1)
+    test_definitions = get_test_definitions()
 
     report_progress("Boot")
     test_definitions.boot_up()
