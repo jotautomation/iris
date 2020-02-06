@@ -31,7 +31,7 @@ def run_test_runner(test_control, message_queue):
         if step == report_progress.previous_step:
             msg = step + " finished in " + str(datetime.now() - report_progress.start_time)
         else:
-            msg = (step + " started at " + str(datetime.now()))
+            msg = step + " started at " + str(datetime.now())
             report_progress.previous_step = step
             report_progress.start_time = datetime.now()
 
@@ -70,28 +70,40 @@ def run_test_runner(test_control, message_queue):
 
         try:
             report_progress("Prepare")
-            dut = test_definitions.prepare_test()
-            report_progress("Prepare", dut=dut)
-
-            results["DUT"] = dut
+            duts = test_definitions.prepare_test()
+            report_progress("Prepare")
 
             for test_case in tests:
 
-                report_progress(test_case, dut=dut)
+                for dut_name, dut_sn in duts.items():
 
-                test_instance = getattr(test_definitions, test_case)()
-                test_instance.test(test_definitions.INSTRUMENTS, dut)
-                results[test_case] = test_instance.result_handler(
-                    test_definitions.LIMITS[test_case]
-                )
-                if not all([r[1]["result"] for r in results[test_case].items()]):
-                    overall_results = False
+                    if dut_name not in test_definitions.DUTS:
+                        raise exceptions.InputError(
+                            '', "DUT name '" + dut_name + "' not defined in test definitions"
+                        )
 
-                report_progress(test_case, dut=dut, message=pprint.pformat(results[test_case]))
+                    report_progress(test_case, dut=(dut_name, dut_sn))
 
-            report_progress("finalize", dut=dut, message="Overall result " + str(overall_results))
-            test_definitions.finalize_test(overall_results, dut, test_definitions.INSTRUMENTS)
-            report_progress("finalize", dut=dut, message="Overall result " + str(overall_results))
+                    results[dut_sn] = {}
+                    results[dut_sn]["test_position"] = dut_name
+
+                    test_instance = getattr(test_definitions, test_case)()
+                    test_instance.test(test_definitions.INSTRUMENTS, dut_sn)
+                    results[dut_sn][test_case] = test_instance.result_handler(
+                        test_definitions.LIMITS[test_case]
+                    )
+                    if not all([r[1]["result"] for r in results[dut_sn][test_case].items()]):
+                        overall_results = False
+
+                    report_progress(
+                        test_case,
+                        dut=(dut_name, dut_sn),
+                        message=pprint.pformat(results[dut_sn][test_case]),
+                    )
+
+            report_progress("finalize", dut=duts, message="Overall result " + str(overall_results))
+            test_definitions.finalize_test(overall_results, duts, test_definitions.INSTRUMENTS)
+            report_progress("finalize", dut=duts, message="Overall result " + str(overall_results))
 
             results["Overall result"] = overall_results
 
@@ -103,12 +115,12 @@ def run_test_runner(test_control, message_queue):
         finally:
             pass
 
-        report_progress("Create test report", dut=dut)
+        report_progress("Create test report", dut=duts)
         if test_control['report_off']:
-            report_progress("Create test report", dut=dut, message="Test report creation skipped")
+            report_progress("Create test report", dut=duts, message="Test report creation skipped")
         else:
-            test_definitions.create_report(json.dumps(results), dut)
-            report_progress("Create test report", dut=dut)
+            test_definitions.create_report(json.dumps(results), duts)
+            report_progress("Create test report", dut=duts)
 
         if test_control['single_run']:
             test_control['terminate'] = True

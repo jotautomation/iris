@@ -3,3 +3,5 @@
 TESTS = ["first", "second", "third", "fourth"]
 
 SKIP = ["first", "third", "fourth"]
+
+DUTS = ["left", "right", "middle"]
