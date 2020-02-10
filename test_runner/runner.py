@@ -100,7 +100,8 @@ def run_test_runner(test_control, message_queue, progess_queue):
             for dut_key, dut_value in duts.items():
                 dut_status[dut_key] = {
                     'step': None,
-                    'status': 'waiting_test',
+                    'status': 'idle',
+                    'test_status': 'pass',
                     'sn': dut_value['sn'],
                 }
 
@@ -123,8 +124,10 @@ def run_test_runner(test_control, message_queue, progess_queue):
                     )
                     if not all([r[1]["result"] for r in results[dut_sn][test_case].items()]):
                         overall_result = False
-                        dut_status[dut_name]['status'] = 'failed'
+                        dut_status[dut_name]['test_status'] = 'fail'
                         dut_status[dut_name]['failed_step'] = test_case
+
+                    dut_status[dut_name]['status'] = 'idle'
 
                     report_progress('testing', dut_status)
 
