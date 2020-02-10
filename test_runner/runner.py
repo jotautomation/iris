@@ -128,6 +128,7 @@ def run_test_runner(test_control, message_queue, progess_queue):
                         dut_status[dut_name]['failed_step'] = test_case
 
                     dut_status[dut_name]['status'] = 'idle'
+                    dut_status[dut_name]['step'] = None
 
                     report_progress('testing', dut_status)
 
