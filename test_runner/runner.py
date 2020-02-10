@@ -20,6 +20,7 @@ def get_test_control():
         'terminate': False,
         'report_off': False,
         'run': threading.Event(),
+        'get_sn_from_ui': False,
     }
 
 
@@ -38,25 +39,31 @@ def get_test_definitions():
     return test_definitions
 
 
-def run_test_runner(test_control, message_queue):
+def get_sn_from_ui():
+    # This will come from UI
+    import uuid
+
+    return {
+        "left": {'sn': str(uuid.uuid4())},
+        "right": {'sn': str(uuid.uuid4())},
+        "middle": {'sn': str(uuid.uuid4())},
+    }
+
+
+def run_test_runner(test_control, message_queue, progess_queue):
     """Starts the testing"""
 
-    def report_progress(step, message=None, dut=None):
-
-        if step == report_progress.previous_step:
-            msg = step + " finished in " + str(datetime.now() - report_progress.start_time)
-        else:
-            msg = step + " started at " + str(datetime.now())
-            report_progress.previous_step = step
-            report_progress.start_time = datetime.now()
-
-        if dut:
-            msg = msg + " [DUT: " + str(dut) + "]"
-
+    def send_message(message):
         if message:
-            msg = msg + ": " + message
+            message_queue.put(message)
 
-        message_queue.put(msg)
+    def report_progress(general_step, duts=None, overall_result=None):
+
+        progress_json = {"general_state": general_step, "duts": duts}
+        if overall_result:
+            progress_json['overall_result'] = overall_result
+
+        progess_queue.put(json.dumps(progress_json))
 
     report_progress.start_time = None
     report_progress.previous_step = None
@@ -65,7 +72,6 @@ def run_test_runner(test_control, message_queue):
 
     report_progress("Boot")
     test_definitions.boot_up()
-    report_progress("Boot")
 
     tests = [t for t in test_definitions.TESTS if t not in test_definitions.SKIP]
 
@@ -74,23 +80,38 @@ def run_test_runner(test_control, message_queue):
         test_control['run'].wait()
 
         results = {}
-        overall_results = True
-
+        overall_result = True
+        dut_status = {}
         try:
+
             report_progress("Prepare")
-            duts = test_definitions.prepare_test()
-            report_progress("Prepare")
+
+            if test_control['get_sn_from_ui']:
+
+                for dut in test_definitions.DUT:
+                    dut_status[dut] = {'step': None, 'status': 'waiting_test', 'sn': None}
+
+                report_progress("Prepare", duts=dut_status)
+
+                duts = get_sn_from_ui()
+            else:
+                duts = test_definitions.prepare_test()
+
+            for dut_key, dut_value in duts.items():
+                dut_status[dut_key] = {
+                    'step': None,
+                    'status': 'waiting_test',
+                    'sn': dut_value['sn'],
+                }
 
             for test_case in tests:
 
-                for dut_name, dut_sn in duts.items():
+                for dut_name, dut_value in duts.items():
+                    dut_sn = dut_value['sn']
+                    dut_status[dut_name]['step'] = test_case
+                    dut_status[dut_name]['status'] = 'testing'
 
-                    if dut_name not in test_definitions.DUTS:
-                        raise exceptions.InputError(
-                            '', "DUT name '" + dut_name + "' not defined in test definitions"
-                        )
-
-                    report_progress(test_case, dut=(dut_name, dut_sn))
+                    report_progress('testing', dut_status)
 
                     results[dut_sn] = {}
                     results[dut_sn]["test_position"] = dut_name
@@ -101,19 +122,16 @@ def run_test_runner(test_control, message_queue):
                         test_definitions.LIMITS[test_case]
                     )
                     if not all([r[1]["result"] for r in results[dut_sn][test_case].items()]):
-                        overall_results = False
+                        overall_result = False
+                        dut_status[dut_name]['status'] = 'failed'
+                        dut_status[dut_name]['failed_step'] = test_case
 
-                    report_progress(
-                        test_case,
-                        dut=(dut_name, dut_sn),
-                        message=pprint.pformat(results[dut_sn][test_case]),
-                    )
+                    report_progress('testing', dut_status)
 
-            report_progress("finalize", dut=duts, message="Overall result " + str(overall_results))
-            test_definitions.finalize_test(overall_results, duts, test_definitions.INSTRUMENTS)
-            report_progress("finalize", dut=duts, message="Overall result " + str(overall_results))
+            report_progress('finalize', dut_status, overall_result=overall_result)
+            test_definitions.finalize_test(overall_result, duts, test_definitions.INSTRUMENTS)
 
-            results["Overall result"] = overall_results
+            results["Overall result"] = overall_result
 
         except exceptions.Error as e:
             # TODO: write error to report
@@ -123,12 +141,9 @@ def run_test_runner(test_control, message_queue):
         finally:
             pass
 
-        report_progress("Create test report", dut=duts)
-        if test_control['report_off']:
-            report_progress("Create test report", dut=duts, message="Test report creation skipped")
-        else:
+        report_progress("Create test report")
+        if not test_control['report_off']:
             test_definitions.create_report(json.dumps(results), duts)
-            report_progress("Create test report", dut=duts)
 
         if test_control['single_run']:
             test_control['terminate'] = True

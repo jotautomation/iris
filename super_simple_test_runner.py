@@ -56,36 +56,48 @@ if ARGS.report_off:
     CONTROL['report_off'] = True
 
 MESSAGE_QUEUE = Queue()
+PROGRESS_QUEUE = Queue()
 
 RUNNER_THREAD = threading.Thread(
-    target=runner.run_test_runner, args=(CONTROL, MESSAGE_QUEUE), name='test_runner_thread'
+    target=runner.run_test_runner,
+    args=(CONTROL, MESSAGE_QUEUE, PROGRESS_QUEUE),
+    name='test_runner_thread',
 )
-
+RUNNER_THREAD.daemon = True
 RUNNER_THREAD.start()
 
 
-def message_queue_worker(message_queue, message_handler):
-    while True:
-        msg = message_queue.get()
-        for handler in message_handler:
-            handler(msg)
+class MessageHandler:
+    def __init__(self, message_queue, message_handler):
+        while True:
+            msg = message_queue.get()
+            for handler in message_handler:
+                handler(msg)
 
 
 MESSAGE_HANDLER = [print]
 
 MESSAGE_THREAD = threading.Thread(
-    target=message_queue_worker, args=(MESSAGE_QUEUE, MESSAGE_HANDLER), name='message_thread'
+    target=MessageHandler, args=(MESSAGE_QUEUE, MESSAGE_HANDLER), name='message_thread'
 )
 
+PROGRESS_HANDLER = [print]
+
+PROGRESS_THREAD = threading.Thread(
+    target=MessageHandler, args=(PROGRESS_QUEUE, PROGRESS_HANDLER), name='progress_thread'
+)
+
+PROGRESS_THREAD.daemon = True
+MESSAGE_THREAD.daemon = True
+
+PROGRESS_THREAD.start()
 MESSAGE_THREAD.start()
 
 if ARGS.listener:
     if ARGS.port:
         PORT = ARGS.port
 
-    CONTROL['run'].clear()
-
-    listener.create_listener(PORT, CONTROL, MESSAGE_HANDLER, DEFINITIONS)
+    listener.create_listener(PORT, CONTROL, MESSAGE_HANDLER, PROGRESS_HANDLER, DEFINITIONS)
     tornado.ioloop.IOLoop.current().start()
 
 MESSAGE_HANDLER = print

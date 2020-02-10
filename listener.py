@@ -91,6 +91,7 @@ class ApiRootHandler(SstsRequestHandler):
     def handle_post(self, json_args, host, user, *args):  # pylint: disable=W0613
         """Handle /api post"""
 
+
 class TestRunnerHandler(SstsRequestHandler):
     """Handles starting of tests, returns status of tests etc."""
 
@@ -199,12 +200,22 @@ class MessageWebsocketHandler(tornado.websocket.WebSocketHandler):
         return True
 
 
-def create_listener(port, test_control, message_handlers, test_definitions):
+def create_listener(port, test_control, message_handlers, progress_handlers, test_definitions):
     """Setup and create listener"""
-    init = {'test_control': test_control, 'message_handlers': message_handlers, 'test_definitions': test_definitions}
+    init = {'test_control': test_control, 'test_definitions': test_definitions}
+
     app = tornado.web.Application(
         [
-            (r'/api/websocket/messagequeue', MessageWebsocketHandler, init),
+            (
+                r'/api/websocket/messagequeue',
+                MessageWebsocketHandler,
+                {'message_handlers': message_handlers},
+            ),
+            (
+                r'/api/websocket/progress',
+                MessageWebsocketHandler,
+                {'message_handlers': progress_handlers},
+            ),
             (r"/api", ApiRootHandler, init),
             (r"/api/duts", DutsHandler, init),
             (r"/api/testcontrol", TestRunnerHandler, init),
