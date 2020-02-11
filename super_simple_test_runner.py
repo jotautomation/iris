@@ -18,7 +18,7 @@ PORT = 4321
 PARSER = argparse.ArgumentParser(description="Super simple test sequencer.")
 PARSER.add_argument("--single_run", "-s", help="Run only once", action="store_true")
 PARSER.add_argument(
-    "--create", "-c", help="Creates empty/example test definitions", action="store_true"
+    "--create", "-c", metavar='path', type=str, nargs=1, help="Creates empty/example test COMMON_definitions"
 )
 PARSER.add_argument("--report_off", "-r", help="Don't create test report", action="store_true")
 PARSER.add_argument(
@@ -32,20 +32,30 @@ PARSER.add_argument('-p', '--port', help="Set port to listen", type=int)
 ARGS = PARSER.parse_args()
 
 if ARGS.create:
-    if os.path.isdir("./test_definitions"):
+
+    from test_definition_template import example_sequence
+
+    TEST_DEF_PATH = os.path.join("./test_definitions", ARGS.create[0])
+
+    if os.path.isdir(TEST_DEF_PATH):
         print("test_definitions folder already exists")
         sys.exit(-1)
 
-    import empty_test_definitions
+    copy_tree(example_sequence.__path__[0], TEST_DEF_PATH)
 
-    copy_tree(empty_test_definitions.__path__[0], "./test_definitions")
-    print("Empty test definitions created")
+    if not os.path.isdir('./test_definitions/common'):
+        from test_definition_template import common
+        copy_tree(common.__path__[0], './test_definitions/common')
+    else:
+        print('./test_definitions/common already exists. Not copying it.')
+
+    print("Test definition template created")
 
     sys.exit()
 
 
 CONTROL = runner.get_test_control()
-DEFINITIONS = runner.get_test_definitions()
+COMMON_DEFINITIONS = runner.get_common_definitions()
 
 CONTROL['run'].set()
 
@@ -97,7 +107,7 @@ if ARGS.listener:
     if ARGS.port:
         PORT = ARGS.port
 
-    listener.create_listener(PORT, CONTROL, MESSAGE_HANDLER, PROGRESS_HANDLER, DEFINITIONS)
+    listener.create_listener(PORT, CONTROL, MESSAGE_HANDLER, PROGRESS_HANDLER, COMMON_DEFINITIONS)
     tornado.ioloop.IOLoop.current().start()
 
 MESSAGE_HANDLER = print

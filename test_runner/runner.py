@@ -2,10 +2,9 @@
 import sys
 import os
 import json
-import pprint
-from test_runner import exceptions
+import importlib
 import threading
-from datetime import datetime
+from test_runner import exceptions
 
 
 def get_test_control():
@@ -24,30 +23,47 @@ def get_test_control():
     }
 
 
-def get_test_definitions():
+def get_common_definitions():
     """Returns test definitions"""
 
     sys.path.append(os.getcwd())
     sys.path.append(os.path.join(os.getcwd(), 'test_definitions'))
 
     try:
-        import test_definitions
+        import common
     except ImportError:
-        print("No test definitions defined. Create empty definitions with --create argument.")
+        print("No test definitions defined. Create definition template with --create argument.")
         sys.exit(-1)
 
-    return test_definitions
+    return common
+
+
+def get_test_definitions(sequence_name):
+    """Returns test definitions"""
+
+    sys.path.append(os.getcwd())
+    sys.path.append(os.path.join(os.getcwd(), 'test_definitions'))
+
+    try:
+        imp = importlib.import_module(sequence_name)
+    except ImportError:
+        print(
+            "Cannot find " + sequence_name + ". Create definition template with --create argument."
+        )
+        sys.exit(-1)
+
+    return imp
 
 
 def get_sn_from_ui():
     # This will come from UI
     import uuid
 
-    return {
+    return ({
         "left": {'sn': str(uuid.uuid4())},
         "right": {'sn': str(uuid.uuid4())},
         "middle": {'sn': str(uuid.uuid4())},
-    }
+    }, "testA")
 
 
 def run_test_runner(test_control, message_queue, progess_queue):
@@ -57,23 +73,19 @@ def run_test_runner(test_control, message_queue, progess_queue):
         if message:
             message_queue.put(message)
 
-    def report_progress(general_step, duts=None, overall_result=None):
+    def report_progress(general_step, duts=None, overall_result=None, sequence=None):
 
-        progress_json = {"general_state": general_step, "duts": duts}
+        progress_json = {"general_state": general_step, "duts": duts, "sequence": sequence}
+
         if overall_result:
             progress_json['overall_result'] = overall_result
 
         progess_queue.put(json.dumps(progress_json))
 
-    report_progress.start_time = None
-    report_progress.previous_step = None
-
-    test_definitions = get_test_definitions()
+    common_definitions = get_common_definitions()
 
     report_progress("Boot")
-    test_definitions.boot_up()
-
-    tests = [t for t in test_definitions.TESTS if t not in test_definitions.SKIP]
+    common_definitions.boot_up()
 
     while not test_control['terminate']:
         # Wait until you are allowed to run again i.e. pause
@@ -88,14 +100,18 @@ def run_test_runner(test_control, message_queue, progess_queue):
 
             if test_control['get_sn_from_ui']:
 
-                for dut in test_definitions.DUT:
+                for dut in common_definitions.DUT:
                     dut_status[dut] = {'step': None, 'status': 'waiting_test', 'sn': None}
 
                 report_progress("Prepare", duts=dut_status)
 
-                duts = get_sn_from_ui()
+                duts, sequence = get_sn_from_ui()
             else:
-                duts = test_definitions.prepare_test()
+                duts, sequence = common_definitions.prepare_test()
+
+            test_definitions = get_test_definitions(sequence)
+
+            tests = [t for t in test_definitions.TESTS if t not in test_definitions.SKIP]
 
             for dut_key, dut_value in duts.items():
                 dut_status[dut_key] = {
@@ -118,7 +134,7 @@ def run_test_runner(test_control, message_queue, progess_queue):
                     results[dut_sn]["test_position"] = dut_name
 
                     test_instance = getattr(test_definitions, test_case)()
-                    test_instance.test(test_definitions.INSTRUMENTS, dut_sn)
+                    test_instance.test(common_definitions.INSTRUMENTS, dut_sn)
                     results[dut_sn][test_case] = test_instance.result_handler(
                         test_definitions.LIMITS[test_case]
                     )
@@ -147,13 +163,13 @@ def run_test_runner(test_control, message_queue, progess_queue):
 
         report_progress("Create test report")
         if not test_control['report_off']:
-            test_definitions.create_report(json.dumps(results), duts)
+            common_definitions.create_report(json.dumps(results), duts)
 
         if test_control['single_run']:
             test_control['terminate'] = True
 
     report_progress("Shutdown")
 
-    test_definitions.shutdown()
+    common_definitions.shutdown()
 
     report_progress("Shutdown")
