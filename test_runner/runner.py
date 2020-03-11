@@ -107,7 +107,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
                 duts, sequence = get_sn_from_ui(dut_sn_queue)
             else:
-                duts, sequence = common_definitions.prepare_test()
+                duts, sequence = common_definitions.prepare_test(common_definitions.INSTRUMENTS)
 
             test_definitions = get_test_definitions(sequence)
 

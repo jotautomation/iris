@@ -1,3 +1,3 @@
-import dummy_g5_instrument
+import gaiaclient
 
-INSTRUMENTS = {"G5": dummy_g5_instrument.G5()}
+INSTRUMENTS = {"G5": gaiaclient.Client("localhost:12345")}

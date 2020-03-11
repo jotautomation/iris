@@ -9,8 +9,9 @@ def finalize_test(overallresult, duts, instruments):
     print("Testing ready")
 
 
-def prepare_test():
-    print("Preparing to test")
+def prepare_test(instruments):
+    print("Waiting G5 to get ready for next (or first) test run")
+    instruments['G5'].wait_ready()
     import uuid
 
     # Figure out DUT sn (probably with code reader), find out what
