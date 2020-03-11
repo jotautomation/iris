@@ -149,7 +149,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                     report_progress('testing', dut_status)
 
             report_progress('finalize', dut_status, overall_result=overall_result)
-            test_definitions.finalize_test(overall_result, duts, test_definitions.INSTRUMENTS)
+            common_definitions.finalize_test(overall_result, duts, common_definitions.INSTRUMENTS)
 
             results["Overall result"] = overall_result
 
