@@ -18,7 +18,12 @@ PORT = 4321
 PARSER = argparse.ArgumentParser(description="Super simple test sequencer.")
 PARSER.add_argument("--single_run", "-s", help="Run only once", action="store_true")
 PARSER.add_argument(
-    "--create", "-c", metavar='path', type=str, nargs=1, help="Creates empty/example test COMMON_definitions"
+    "--create",
+    "-c",
+    metavar='path',
+    type=str,
+    nargs=1,
+    help="Creates empty/example test COMMON_definitions",
 )
 PARSER.add_argument("--report_off", "-r", help="Don't create test report", action="store_true")
 PARSER.add_argument(
@@ -45,6 +50,7 @@ if ARGS.create:
 
     if not os.path.isdir('./test_definitions/common'):
         from test_definition_template import common
+
         copy_tree(common.__path__[0], './test_definitions/common')
     else:
         print('./test_definitions/common already exists. Not copying it.')
@@ -65,12 +71,13 @@ if ARGS.single_run:
 if ARGS.report_off:
     CONTROL['report_off'] = True
 
+DUT_SN_QUEUE = Queue()
 MESSAGE_QUEUE = Queue()
 PROGRESS_QUEUE = Queue()
 
 RUNNER_THREAD = threading.Thread(
     target=runner.run_test_runner,
-    args=(CONTROL, MESSAGE_QUEUE, PROGRESS_QUEUE),
+    args=(CONTROL, MESSAGE_QUEUE, PROGRESS_QUEUE, DUT_SN_QUEUE),
     name='test_runner_thread',
 )
 RUNNER_THREAD.daemon = True
@@ -107,7 +114,9 @@ if ARGS.listener:
     if ARGS.port:
         PORT = ARGS.port
 
-    listener.create_listener(PORT, CONTROL, MESSAGE_HANDLER, PROGRESS_HANDLER, COMMON_DEFINITIONS)
+    listener.create_listener(
+        PORT, CONTROL, MESSAGE_HANDLER, PROGRESS_HANDLER, COMMON_DEFINITIONS, DUT_SN_QUEUE
+    )
     tornado.ioloop.IOLoop.current().start()
 
 MESSAGE_HANDLER = print

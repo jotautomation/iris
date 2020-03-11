@@ -55,7 +55,7 @@ def get_test_definitions(sequence_name):
     return imp
 
 
-def get_sn_from_ui():
+def get_sn_from_ui(dut_sn_queue):
     # This will come from UI
     import uuid
 
@@ -66,7 +66,7 @@ def get_sn_from_ui():
     }, "testA")
 
 
-def run_test_runner(test_control, message_queue, progess_queue):
+def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
     """Starts the testing"""
 
     def send_message(message):
@@ -100,12 +100,12 @@ def run_test_runner(test_control, message_queue, progess_queue):
 
             if test_control['get_sn_from_ui']:
 
-                for dut in common_definitions.DUT:
+                for dut in common_definitions.DUTS:
                     dut_status[dut] = {'step': None, 'status': 'waiting_test', 'sn': None}
 
                 report_progress("Prepare", duts=dut_status)
 
-                duts, sequence = get_sn_from_ui()
+                duts, sequence = get_sn_from_ui(dut_sn_queue)
             else:
                 duts, sequence = common_definitions.prepare_test()
 

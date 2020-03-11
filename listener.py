@@ -166,11 +166,13 @@ class MessageWebsocketHandler(tornado.websocket.WebSocketHandler):
     we need to use call_soon_threadsafe to get messages through.
     """
 
-    def initialize(self, message_handlers, **kwargs):
+    def initialize(self, message_handlers=None, return_message_handler=None, **kwargs):
         """Initialize is called when tornado.web.Application is created"""
-        message_handlers.append(self.websocket_signal_handler)  # pylint: disable=W0201
+        if message_handlers:
+            message_handlers.append(self.websocket_signal_handler)  # pylint: disable=W0201
 
         self.loop = asyncio.get_event_loop()  # pylint: disable=W0201
+        self.return_message_handler = return_message_handler  # pylint: disable=W0201
 
     def websocket_signal_handler(self, message):  # pylint: disable=W0613
         """Sends application state changes through websocket"""
@@ -189,7 +191,7 @@ class MessageWebsocketHandler(tornado.websocket.WebSocketHandler):
 
     def on_message(self, message):
         """Called when message comes from client through websocket"""
-        self.write_message("echo: %r" % message)
+        self.return_message_handler.put(message)
 
     def check_origin(self, origin):  # pylint: disable=R0201, W0613
         """Checks whether websocket connection from origin is allowed.
@@ -200,7 +202,14 @@ class MessageWebsocketHandler(tornado.websocket.WebSocketHandler):
         return True
 
 
-def create_listener(port, test_control, message_handlers, progress_handlers, test_definitions):
+def create_listener(
+        port,
+        test_control,
+        message_handlers,
+        progress_handlers,
+        test_definitions,
+        return_message_handler,
+):
     """Setup and create listener"""
     init = {'test_control': test_control, 'test_definitions': test_definitions}
 
@@ -215,6 +224,11 @@ def create_listener(port, test_control, message_handlers, progress_handlers, tes
                 r'/api/websocket/progress',
                 MessageWebsocketHandler,
                 {'message_handlers': progress_handlers},
+            ),
+            (
+                r'/api/websocket/dut_sn',
+                MessageWebsocketHandler,
+                {'return_message_handler': return_message_handler},
             ),
             (r"/api", ApiRootHandler, init),
             (r"/api/duts", DutsHandler, init),
