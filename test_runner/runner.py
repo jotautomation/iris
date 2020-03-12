@@ -112,17 +112,15 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
     common_definitions.boot_up()
 
     last_dut_status = {}
+    dut_status = {}
 
     while not test_control['terminate']:
         # Wait until you are allowed to run again i.e. pause
         test_control['run'].wait()
 
-        results = {}
-        overall_result = True
-        dut_status = {}
         try:
 
-            report_progress("Prepare")
+            report_progress("Prepare", dut_status)
 
             if test_control['get_sn_from_ui']:
 
@@ -136,6 +134,9 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                 duts, sequence = get_sn_from_ui(dut_sn_queue)
             else:
                 duts, sequence = common_definitions.prepare_test(common_definitions.INSTRUMENTS)
+
+            results = {}
+            overall_result = True
 
             test_definitions = get_test_definitions(sequence)
 
