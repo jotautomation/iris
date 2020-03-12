@@ -19,7 +19,7 @@ def get_test_control():
         'terminate': False,
         'report_off': False,
         'run': threading.Event(),
-        'get_sn_from_ui': False,
+        'get_sn_from_ui': True,
     }
 
 
@@ -56,14 +56,31 @@ def get_test_definitions(sequence_name):
 
 
 def get_sn_from_ui(dut_sn_queue):
-    # This will come from UI
-    import uuid
+    """Returns serial numbers from UI"""
 
-    return ({
-        "left": {'sn': str(uuid.uuid4())},
-        "right": {'sn': str(uuid.uuid4())},
-        "middle": {'sn': str(uuid.uuid4())},
-    }, "testA")
+    common_definitions = get_common_definitions()
+    duts_sn = {dut: {'sn': None} for dut in common_definitions.DUTS}
+    print('Wait SNs from UI for duts: ' + str(common_definitions.DUTS))
+    while True:
+        msg = dut_sn_queue.get()
+
+        try:
+            msg = json.loads(msg)
+            for dut in msg:
+                if dut in duts_sn:
+                    duts_sn[dut]['sn'] = msg[dut]
+        except (AttributeError, json.decoder.JSONDecodeError):
+            pass
+
+        # Loop until all DUTs have received a serial number
+        for dut in duts_sn:
+            if not duts_sn[dut]['sn']:
+                break
+        else:
+            print("All DUT serial numbers received from UI")
+            break
+
+    return (duts_sn, "testA")
 
 
 def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
@@ -75,11 +92,15 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
     def report_progress(general_step, duts=None, overall_result=None, sequence=None):
 
-        progress_json = {"general_state": general_step, "duts": duts, "sequence": sequence}
+        progress_json = {"general_state": general_step,
+                         "duts": duts,
+                         "sequence": sequence,
+                         "get_sn_from_ui": test_control['get_sn_from_ui']}
 
         if overall_result:
             progress_json['overall_result'] = overall_result
 
+        test_control['progress'] = progress_json
         progess_queue.put(json.dumps(progress_json))
 
     common_definitions = get_common_definitions()
@@ -101,7 +122,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
             if test_control['get_sn_from_ui']:
 
                 for dut in common_definitions.DUTS:
-                    dut_status[dut] = {'step': None, 'status': 'waiting_test', 'sn': None}
+                    dut_status[dut] = {'step': None, 'status': 'wait', 'sn': None}
 
                 report_progress("Prepare", duts=dut_status)
 
@@ -117,7 +138,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                 dut_status[dut_key] = {
                     'step': None,
                     'status': 'idle',
-                    'test_status': 'pass',
+                    'test_status': None,
                     'sn': dut_value['sn'],
                 }
 
@@ -128,7 +149,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                     dut_status[dut_name]['step'] = test_case
                     dut_status[dut_name]['status'] = 'testing'
 
-                    report_progress('testing', dut_status)
+                    report_progress('testing', dut_status, sequence=sequence)
 
                     results[dut_sn] = {}
                     results[dut_sn]["test_position"] = dut_name
@@ -142,13 +163,15 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                         overall_result = False
                         dut_status[dut_name]['test_status'] = 'fail'
                         dut_status[dut_name]['failed_step'] = test_case
+                    else:
+                        dut_status[dut_name]['test_status'] = 'pass'
 
                     dut_status[dut_name]['status'] = 'idle'
                     dut_status[dut_name]['step'] = None
 
-                    report_progress('testing', dut_status)
+                    report_progress('testing', dut_status, sequence=sequence)
 
-            report_progress('finalize', dut_status, overall_result=overall_result)
+            report_progress('finalize', dut_status, overall_result=overall_result, sequence=sequence)
             common_definitions.finalize_test(overall_result, duts, common_definitions.INSTRUMENTS)
 
             results["Overall result"] = overall_result
@@ -161,7 +184,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
         finally:
             pass
 
-        report_progress("Create test report")
+        report_progress("Create test report", sequence=sequence)
         if not test_control['report_off']:
             common_definitions.create_report(json.dumps(results), duts)
 

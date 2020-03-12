@@ -124,6 +124,15 @@ class DutsHandler(SstsRequestHandler):
         return {'duts': self.test_definitions.DUTS}
 
 
+class ProgressHandler(SstsRequestHandler):
+    """Handles calls to /api/progress"""
+
+    def handle_get(self, host, user, *args):
+        """Returns current progress as json"""
+
+        return {'progress': self.test_control['progress']}
+
+
 class UiEntryHandler(tornado.web.StaticFileHandler):
     """Handles returning the UI from all paths except /api"""
 
@@ -232,6 +241,7 @@ def create_listener(
             ),
             (r"/api", ApiRootHandler, init),
             (r"/api/duts", DutsHandler, init),
+            (r"/api/progress", ProgressHandler, init),
             (r"/api/testcontrol", TestRunnerHandler, init),
             (r"/api/testcontrol/([0-9]+)", TestRunnerHandler, init),
             (r"/(.*\.(js|json|html|css))", tornado.web.StaticFileHandler, {'path': 'ui/build/'}),
