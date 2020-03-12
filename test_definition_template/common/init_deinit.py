@@ -6,7 +6,14 @@ def boot_up():
 
 
 def finalize_test(overallresult, duts, instruments):
-    print("Testing ready")
+    print("Testing ready. Release DUT(s) on G5")
+
+    if overallresult:
+        instruments['G5'].state_triggers['ReleasePass']()
+    else:
+        instruments['G5'].state_triggers['ReleaseFail']()
+
+    instruments['G5'].wait_not_ready()
 
 
 def prepare_test(instruments):
