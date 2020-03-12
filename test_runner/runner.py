@@ -108,6 +108,8 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
     report_progress("Boot")
     common_definitions.boot_up()
 
+    last_dut_status = {}
+
     while not test_control['terminate']:
         # Wait until you are allowed to run again i.e. pause
         test_control['run'].wait()
@@ -123,6 +125,8 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
                 for dut in common_definitions.DUTS:
                     dut_status[dut] = {'step': None, 'status': 'wait', 'sn': None}
+                    if dut in last_dut_status:
+                        dut_status[dut]['test_status'] = last_dut_status[dut]['test_status']
 
                 report_progress("Prepare", duts=dut_status)
 
@@ -166,6 +170,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                     else:
                         dut_status[dut_name]['test_status'] = 'pass'
 
+                    last_dut_status[dut_name] = dut_status[dut_name]
                     dut_status[dut_name]['status'] = 'idle'
                     dut_status[dut_name]['step'] = None
 
