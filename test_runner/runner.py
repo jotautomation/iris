@@ -19,7 +19,7 @@ def get_test_control():
         'terminate': False,
         'report_off': False,
         'run': threading.Event(),
-        'get_sn_from_ui': True,
+        'get_sn_from_ui': get_common_definitions().SN_FROM_UI,
     }
 
 
