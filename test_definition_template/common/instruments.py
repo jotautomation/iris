@@ -12,4 +12,4 @@ INSTRUMENTS = {"G5": None}
 
 def instrument_initialization():
     """Connect and initialize instruments"""
-    INSTRUMENTS["G5"] = gaiaclient.Client("localhost:1234")
+    INSTRUMENTS["G5"] = gaiaclient.Client("http://localhost:1234")
