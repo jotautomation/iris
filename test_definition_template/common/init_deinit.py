@@ -6,19 +6,19 @@ def boot_up():
 
 
 def finalize_test(overallresult, duts, instruments):
-    print("Testing ready. Release DUT(s) on G5")
+    print("Testing ready. Release DUT(s) on Gaia")
 
     if overallresult:
-        instruments['G5'].state_triggers['ReleasePass']()
+        instruments['gaia'].state_triggers['ReleasePass']()
     else:
-        instruments['G5'].state_triggers['ReleaseFail']()
+        instruments['gaia'].state_triggers['ReleaseFail']()
 
-    instruments['G5'].wait_not_ready()
+    instruments['gaia'].wait_not_ready()
 
 
 def prepare_test(instruments):
     print("Waiting G5 to get ready for next (or first) test run")
-    instruments['G5'].wait_ready()
+    instruments['gaia'].wait_ready()
     import uuid
 
     # Figure out DUT sn (probably with code reader), find out what

@@ -12,6 +12,7 @@ from distutils.dir_util import copy_tree
 from test_runner import runner
 import listener.listener as listener
 import tornado
+import json
 
 PORT = 4321
 
@@ -32,6 +33,14 @@ PARSER.add_argument(
     help="Creates HTTP listener. Testing is then started through REST API.",
     action="store_true",
 )
+
+PARSER.add_argument(
+    "--list-applications",
+    "-a",
+    help="Lists available application on the connected Gaia tester (G5 or other). Gaia instrument must be defined and available.",
+    action="store_true",
+)
+
 PARSER.add_argument('-p', '--port', help="Set port to listen", type=int)
 
 ARGS = PARSER.parse_args()
@@ -69,6 +78,24 @@ if ARGS.create:
 
 CONTROL = runner.get_test_control()
 COMMON_DEFINITIONS = runner.get_common_definitions()
+
+if ARGS.list_applications:
+    # Print available applications and actions
+    class GaiaJsonEncoder(json.JSONEncoder):
+        '''Encode json properly'''
+        def default(self, obj):
+            if callable(obj):
+                return obj.__name__
+            # Let the base class default method raise the TypeError
+            return json.JSONEncoder.default(self, obj)
+
+    COMMON_DEFINITIONS.instrument_initialization()
+
+    client = COMMON_DEFINITIONS.INSTRUMENTS['gaia']
+
+    print(json.dumps(client.applications, indent=4, sort_keys=True, cls=GaiaJsonEncoder))
+    print(json.dumps(client.state_triggers, indent=4, sort_keys=True, cls=GaiaJsonEncoder))
+    sys.exit()
 
 CONTROL['run'].set()
 
