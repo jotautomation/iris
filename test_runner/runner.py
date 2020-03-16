@@ -20,6 +20,7 @@ def get_test_control():
         'report_off': False,
         'run': threading.Event(),
         'get_sn_from_ui': get_common_definitions().SN_FROM_UI,
+        'test_sequences': get_common_definitions().TEST_SEQUENCES
     }
 
 
@@ -58,6 +59,7 @@ def get_test_definitions(sequence_name):
 def get_sn_from_ui(dut_sn_queue):
     """Returns serial numbers from UI"""
 
+    sequence = None
     common_definitions = get_common_definitions()
     duts_sn = {dut: {'sn': None} for dut in common_definitions.DUTS}
     print('Wait SNs from UI for duts: ' + str(common_definitions.DUTS))
@@ -69,6 +71,9 @@ def get_sn_from_ui(dut_sn_queue):
             for dut in msg:
                 if dut in duts_sn:
                     duts_sn[dut]['sn'] = msg[dut]
+            if 'sequence' in msg:
+                sequence = msg['sequence']
+
         except (AttributeError, json.decoder.JSONDecodeError):
             pass
 
@@ -78,9 +83,10 @@ def get_sn_from_ui(dut_sn_queue):
                 break
         else:
             print("All DUT serial numbers received from UI")
+            print("Selected test sequence", sequence)
             break
 
-    return (duts_sn, "testA")
+    return (duts_sn, sequence)
 
 
 def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
@@ -95,7 +101,8 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
         progress_json = {"general_state": general_step,
                          "duts": duts,
                          "sequence": sequence,
-                         "get_sn_from_ui": test_control['get_sn_from_ui']}
+                         "get_sn_from_ui": test_control['get_sn_from_ui'],
+                         "test_sequences": test_control['test_sequences']}
 
         if overall_result:
             progress_json['overall_result'] = overall_result
