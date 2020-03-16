@@ -23,7 +23,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="super_simple_test_sequencer",
-    version="0.4.0",
+    version="0.5.0",
     license="MIT License",
     author="JOT Automation Ltd.",
     author_email="rami.rahikkala@jotautomation.com",
@@ -31,7 +31,6 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://www.jotautomation.com",
-    include_package_data=True,
     packages=find_packages(),
     package_data={
         "ui": package_files("ui/build/"),
