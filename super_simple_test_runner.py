@@ -64,17 +64,7 @@ if ARGS.create:
     else:
         print('./test_definitions/common already exists. Not copying it.')
 
-    if not os.path.isdir('./ui'):
-        import ui
-
-        copy_tree(ui.__path__[0], './ui')
-    else:
-        print('./ui already exists. Not copying it.')
-
-    print("Test definition template created")
-
-    sys.exit()
-
+    sys.exit(0)
 
 CONTROL = runner.get_test_control()
 COMMON_DEFINITIONS = runner.get_common_definitions()
