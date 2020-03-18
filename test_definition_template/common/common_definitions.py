@@ -10,4 +10,5 @@ SN_FROM_UI = True
 
 # List of test sequences' directory names
 TEST_SEQUENCES = os.listdir('test_definitions')
-TEST_SEQUENCES.remove('common')
+if 'common' in TEST_SEQUENCES:
+    TEST_SEQUENCES.remove('common')
