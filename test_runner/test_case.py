@@ -12,13 +12,14 @@ class TestCase(ABC):
 
     @abstractmethod
     def test(self, instruments, dut):
-        """Contains the test sequence"""
+        """Defines the test case."""
 
     def new_result(self, name, result):
+        """Adds new result to result array"""
         self.results[name] = result
 
     def result_handler(self, limits):
-        """Checks if test is pass or fail. Can be overridden if needed"""
+        """Checks if test is pass or fail. Can be overridden if needed."""
 
         tmp_result = {}
 
