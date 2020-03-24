@@ -1,0 +1,61 @@
+---
+version: 1
+
+# The directory path that is created for log files.
+# Note! This only define directories to create. Log file paths are set
+# on handlers bellow.
+log_file_path: 'logs/'
+disable_existing_loggers: False
+formatters:
+    long:
+        #format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        format: "%(asctime)s,%(msecs)d %(levelname)-8s [%(name)s.%(funcName)s:%(lineno)d] %(threadName)s:%(message)s"
+handlers:
+    console:
+        class: logging.StreamHandler
+        level: INFO
+        formatter: long
+        stream: ext://sys.stdout
+
+    test_case_file_handler:
+        class: logging.handlers.RotatingFileHandler
+        level: INFO
+        formatter: long
+        filename: ./logs/test_case.log
+        maxBytes: 1048576 # 1MB
+        backupCount: 20
+        encoding: utf8
+
+    info_file_handler:
+        class: logging.handlers.RotatingFileHandler
+        level: INFO
+        formatter: long
+        filename: ./logs/info.log
+        maxBytes: 1048576 # 1MB
+        backupCount: 20
+        encoding: utf8
+
+    error_file_handler:
+        class: logging.handlers.RotatingFileHandler
+        level: ERROR
+        formatter: long
+        filename: ./logs/errors.log
+        maxBytes: 1048576 # 1MB
+        backupCount: 20
+        encoding: utf8
+
+    websocket:
+        class: logging.StreamHandler
+        level: INFO
+        formatter: long
+
+loggers:
+    # Separate logger for test cases. Everything that is logged
+    # on tests will go to separate file. Logs will be propagated
+    # also on root logger too.
+    test_case:
+        handlers: [console, test_case_file_handler]
+
+root:
+    handlers: [console, info_file_handler, error_file_handler, websocket]
+...

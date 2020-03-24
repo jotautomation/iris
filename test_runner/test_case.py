@@ -2,13 +2,14 @@
 
 from abc import ABC, abstractmethod
 import inspect
-
+import logging
 
 class TestCase(ABC):
     """Base for all test cases"""
 
     def __init__(self):
         self.results = {}
+        self.logger = logging.getLogger('test_case')
 
     @abstractmethod
     def test(self, instruments, dut):

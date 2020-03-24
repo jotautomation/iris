@@ -32,13 +32,19 @@ setup(
     long_description_content_type="text/markdown",
     url="https://www.jotautomation.com",
     packages=find_packages(),
-    package_data={
-        "ui": package_files("ui/build/"),
-    },
+    package_data={"ui": package_files("ui/build/")},
     # packages=["test_definition_template/common", "test_definition_template/example_sequence", "test_runner/", "listener"],
     scripts=["super_simple_test_runner.py"],
     #    py_modules=['super_simple_test_runner', 'test_case', 'test_report_writer' 'test_report_writer'],
-    install_requires=["wheel", "json2html", "tornado", "gaiaclient"],
+    install_requires=[
+        "wheel",
+        "json2html",
+        "tornado",
+        "gaiaclient",
+        "PyYAML",
+        "coloredlogs",
+        "colorama",
+    ],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",

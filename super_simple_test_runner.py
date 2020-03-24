@@ -11,8 +11,13 @@ from queue import Queue
 from distutils.dir_util import copy_tree
 from test_runner import runner
 import listener.listener as listener
+import logging
 import tornado
 import json
+import pathlib
+import yaml
+import coloredlogs
+import logging.config
 
 PORT = 4321
 
@@ -34,6 +39,13 @@ PARSER.add_argument(
     action="store_true",
 )
 
+
+PARSER.add_argument("-v", "--verbose", help="Increase output verbosity.", action="store_true")
+
+PARSER.add_argument(
+    '--no_colored_logs', '-n', help='Disables colored logs on console.', action="store_true"
+)
+
 PARSER.add_argument(
     "--list-applications",
     "-a",
@@ -44,6 +56,39 @@ PARSER.add_argument(
 PARSER.add_argument('-p', '--port', help="Set port to listen", type=int)
 
 ARGS = PARSER.parse_args()
+
+# if ARGS.verbose:
+#     logging.basicConfig(level=logging.DEBUG)
+# else:
+#     logging.basicConfig(level=logging.INFO)
+
+
+LOG_SETTINGS_FILE = pathlib.Path('test_definitions/common/logging.yaml')
+
+
+if LOG_SETTINGS_FILE.is_file():
+    with LOG_SETTINGS_FILE.open() as _f:
+        LOG_CONF = yaml.safe_load(_f.read())
+    pathlib.Path(LOG_CONF['log_file_path']).mkdir(parents=True, exist_ok=True)
+    logging.config.dictConfig(LOG_CONF)
+    logging.info('Logging with configuration from %s', LOG_SETTINGS_FILE)
+else:
+    logging.basicConfig(level=logging.INFO)
+    logging.warning('Cannot find logging settings. Logging with basicConfig.')
+
+if not ARGS.no_colored_logs:
+    HANDLERS = logging.getLogger().handlers
+    CONSOLE_LOG_LEVEL = list(
+        filter(lambda x: x and x.name and x.name.lower() == 'console', HANDLERS)
+    )
+
+    if CONSOLE_LOG_LEVEL:
+        CONSOLE_LOG_LEVEL = CONSOLE_LOG_LEVEL[0].level
+        coloredlogs.install(level=CONSOLE_LOG_LEVEL, milliseconds=True)
+
+LOGGER = logging.getLogger(__name__)
+
+LOGGER.info("Logging initialized")
 
 if ARGS.create:
 
@@ -73,6 +118,7 @@ if ARGS.list_applications:
     # Print available applications and actions
     class GaiaJsonEncoder(json.JSONEncoder):
         '''Encode json properly'''
+
         def default(self, obj):
             if callable(obj):
                 return obj.__name__
