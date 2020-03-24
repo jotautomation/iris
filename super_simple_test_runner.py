@@ -40,7 +40,12 @@ PARSER.add_argument(
 )
 
 
-PARSER.add_argument("-v", "--verbose", help="Increase output verbosity.", action="store_true")
+PARSER.add_argument(
+    "-v",
+    "--verbose",
+    help="Increase output verbosity. Sets colored console logging to debug level.",
+    action="store_true",
+)
 
 PARSER.add_argument(
     '--no_colored_logs', '-n', help='Disables colored logs on console.', action="store_true"
@@ -56,11 +61,6 @@ PARSER.add_argument(
 PARSER.add_argument('-p', '--port', help="Set port to listen", type=int)
 
 ARGS = PARSER.parse_args()
-
-# if ARGS.verbose:
-#     logging.basicConfig(level=logging.DEBUG)
-# else:
-#     logging.basicConfig(level=logging.INFO)
 
 
 LOG_SETTINGS_FILE = pathlib.Path('test_definitions/common/logging.yaml')
@@ -84,11 +84,14 @@ if not ARGS.no_colored_logs:
 
     if CONSOLE_LOG_LEVEL:
         CONSOLE_LOG_LEVEL = CONSOLE_LOG_LEVEL[0].level
+        if ARGS.verbose:
+            CONSOLE_LOG_LEVEL = logging.DEBUG
+
         coloredlogs.install(level=CONSOLE_LOG_LEVEL, milliseconds=True)
 
 LOGGER = logging.getLogger(__name__)
 
-LOGGER.info("Logging initialized")
+LOGGER.debug("Logging initialized")
 
 if ARGS.create:
 
