@@ -219,12 +219,12 @@ def create_listener(
         test_definitions,
         return_message_handler,
 ):
+    """Setup and create listener"""
     import ui
     from pathlib import Path
 
     ui_path = Path(ui.__path__[0], 'build')
 
-    """Setup and create listener"""
     init = {'test_control': test_control, 'test_definitions': test_definitions}
 
     app = tornado.web.Application(
