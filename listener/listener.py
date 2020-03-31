@@ -250,7 +250,7 @@ def create_listener(
             (r"/api/testcontrol", TestRunnerHandler, init),
             (r"/api/testcontrol/([0-9]+)", TestRunnerHandler, init),
             (r"/(.*\.(js|json|html|css))", tornado.web.StaticFileHandler, {'path': ui_path}),
-            (r"/(.*)", UiEntryHandler, {'path': 'ui/build/', "default_filename": "index.html"}),
+            (r"/(.*)", UiEntryHandler, {'path': ui_path, "default_filename": "index.html"}),
         ]
     )
 
