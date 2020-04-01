@@ -184,7 +184,12 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                     try:
                         test_instance.test(common_definitions.INSTRUMENTS, dut_sn)
                     except Exception as err:
-                        results[dut_sn][test_case] = test_instance.result_handler(None, error=err)
+                        results[dut_sn][test_case] = test_instance.result_handler(
+                            None, error=str(err.__class__) + ": " + str(err)
+                        )
+                        # Clean error
+                        if hasattr(test_instance, 'clean_error'):
+                            test_instance.clean_error(common_definitions.INSTRUMENTS, dut_sn)
                     else:
                         if test_case in test_definitions.LIMITS:
                             results[dut_sn][test_case] = test_instance.result_handler(
@@ -192,13 +197,22 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                             )
                         else:
                             results[dut_sn][test_case] = test_instance.result_handler(None)
+                        # Clean
+                        if hasattr(test_instance, 'clean'):
+                            test_instance.clean(common_definitions.INSTRUMENTS, dut_sn)
 
                     if not all([r[1]["result"] for r in results[dut_sn][test_case].items()]):
                         overall_result = False
                         dut_status[dut_name]['test_status'] = 'fail'
                         dut_status[dut_name]['failed_step'] = test_case
+                        if hasattr(test_instance, 'clean_fail'):
+                            test_instance.clean_fail(common_definitions.INSTRUMENTS, dut_sn)
+
                     else:
                         dut_status[dut_name]['test_status'] = 'pass'
+                        if hasattr(test_instance, 'clean_pass'):
+                            test_instance.clean_pass(common_definitions.INSTRUMENTS, dut_sn)
+
 
                     last_dut_status[dut_name] = dut_status[dut_name]
                     dut_status[dut_name]['status'] = 'idle'
