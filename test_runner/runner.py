@@ -20,7 +20,7 @@ def get_test_control():
         'report_off': False,
         'run': threading.Event(),
         'get_sn_from_ui': get_common_definitions().SN_FROM_UI,
-        'test_sequences': get_common_definitions().TEST_SEQUENCES
+        'test_sequences': get_common_definitions().TEST_SEQUENCES,
     }
 
 
@@ -32,6 +32,8 @@ def get_common_definitions():
 
     try:
         import common
+
+        # TODO: This hides also errors on nested imports
     except ImportError:
         print("No test definitions defined. Create definition template with --create argument.")
         sys.exit(-1)
@@ -98,11 +100,13 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
     def report_progress(general_step, duts=None, overall_result=None, sequence=None):
 
-        progress_json = {"general_state": general_step,
-                         "duts": duts,
-                         "sequence": sequence,
-                         "get_sn_from_ui": test_control['get_sn_from_ui'],
-                         "test_sequences": test_control['test_sequences']}
+        progress_json = {
+            "general_state": general_step,
+            "duts": duts,
+            "sequence": sequence,
+            "get_sn_from_ui": test_control['get_sn_from_ui'],
+            "test_sequences": test_control['test_sequences'],
+        }
 
         if overall_result:
             progress_json['overall_result'] = overall_result
@@ -172,10 +176,19 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                     results[dut_sn]["test_position"] = dut_name
 
                     test_instance = getattr(test_definitions, test_case)()
-                    test_instance.test(common_definitions.INSTRUMENTS, dut_sn)
-                    results[dut_sn][test_case] = test_instance.result_handler(
-                        test_definitions.LIMITS[test_case]
-                    )
+
+                    try:
+                        test_instance.test(common_definitions.INSTRUMENTS, dut_sn)
+                    except Exception as err:
+                        results[dut_sn][test_case] = test_instance.result_handler(None, error=err)
+                    else:
+                        if test_case in test_definitions.LIMITS:
+                            results[dut_sn][test_case] = test_instance.result_handler(
+                                test_definitions.LIMITS[test_case]
+                            )
+                        else:
+                            results[dut_sn][test_case] = test_instance.result_handler(None)
+
                     if not all([r[1]["result"] for r in results[dut_sn][test_case].items()]):
                         overall_result = False
                         dut_status[dut_name]['test_status'] = 'fail'
@@ -189,7 +202,9 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
                     report_progress('testing', dut_status, sequence=sequence)
 
-            report_progress('finalize', dut_status, overall_result=overall_result, sequence=sequence)
+            report_progress(
+                'finalize', dut_status, overall_result=overall_result, sequence=sequence
+            )
             common_definitions.finalize_test(overall_result, duts, common_definitions.INSTRUMENTS)
 
             results["Overall result"] = overall_result
