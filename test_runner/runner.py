@@ -49,10 +49,14 @@ def get_test_definitions(sequence_name):
 
     try:
         imp = importlib.import_module(sequence_name)
-    except ImportError:
+    except ImportError as err:
         print(
-            "Cannot find " + sequence_name + ". Create definition template with --create argument."
+            "Error loading "
+            + sequence_name
+            + ". Remember, you can create new definition template with --create argument."
         )
+        print(err)
+        print(sys.exc_info()[0])
         sys.exit(-1)
 
     return imp
