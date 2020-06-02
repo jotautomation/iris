@@ -1,6 +1,11 @@
 from setuptools import setup, find_packages
 import glob
 import os
+import docker
+import tarfile
+import pathlib
+
+
 
 """
 Commands to publish
@@ -8,7 +13,24 @@ python setup.py sdist bdist_wheel
 twine upload dist/*
 
 """
+def get_ui():
+    file_stream = open('ui.tar', 'wb')
+    client = docker.from_env()
+    client.images.pull('ci.jot.local:5000/ssts_ui')
+    ctnr = client.containers.create('ci.jot.local:5000/ssts_ui', name='ssts_ui')
+    api_client = docker.APIClient()
+    bits, stat = api_client.get_archive('ssts_ui', '/usr/src/app/build')
 
+    for chunk in bits:
+        file_stream.write(chunk)
+    file_stream.close()
+    ctnr.remove()
+    tar = tarfile.open("ui.tar")
+    tar.extractall('ui/build')
+    tar.close()
+
+    # Remove tar file
+    pathlib.Path('ui.tar').unlink()
 
 def package_files(directory):
     paths = []
@@ -20,6 +42,8 @@ def package_files(directory):
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
+
+get_ui()
 
 setup(
     name="super_simple_test_sequencer",
