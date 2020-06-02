@@ -1,3 +1,0 @@
-[submodule "ui"]
-	path = ui
-	url = git@fioulgit2.jot.local:jot-internal/production-testing/super-simple-test-sequencer-ui.git
