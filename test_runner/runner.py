@@ -34,8 +34,9 @@ def get_common_definitions():
         import common
 
         # TODO: This hides also errors on nested imports
-    except ImportError:
-        print("No test definitions defined. Create definition template with --create argument.")
+    except ImportError as err:
+        print(err)
+        print("No test definitions defined? Create definition template with --create argument.")
         sys.exit(-1)
 
     return common
@@ -229,6 +230,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
         except exceptions.Error as e:
             # TODO: write error to report
+            print(e)
             raise
         else:
             pass
@@ -244,6 +246,6 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
     report_progress("Shutdown")
 
-    common_definitions.shutdown()
+    common_definitions.shutdown(common_definitions.INSTRUMENTS)
 
     report_progress("Shutdown")
