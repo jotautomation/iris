@@ -1,7 +1,6 @@
 from setuptools import setup, find_packages
 import glob
 import os
-import docker
 import tarfile
 import pathlib
 
@@ -14,6 +13,7 @@ twine upload dist/*
 
 """
 def get_ui():
+    import docker
     file_stream = open('ui.tar', 'wb')
     client = docker.from_env()
     client.images.pull('ci.jot.local:5000/ssts_ui')
@@ -47,7 +47,7 @@ get_ui()
 
 setup(
     name="super_simple_test_sequencer",
-    version="0.9.0",
+    version="0.10.0",
     license="MIT License",
     author="JOT Automation Ltd.",
     author_email="rami.rahikkala@jotautomation.com",
