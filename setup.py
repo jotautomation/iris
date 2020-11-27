@@ -5,15 +5,19 @@ import tarfile
 import pathlib
 
 
-
 """
 Commands to publish
-python setup.py sdist bdist_wheel
+python3 setup.py bdist_wheel
 twine upload dist/*
 
 """
+
+
 def get_ui():
-    import docker
+    try:
+        import docker
+    except ImportError:
+        return
     file_stream = open('ui.tar', 'wb')
     client = docker.from_env()
     client.images.pull('ci.jot.local:5000/ssts_ui')
@@ -32,6 +36,7 @@ def get_ui():
     # Remove tar file
     pathlib.Path('ui.tar').unlink()
 
+
 def package_files(directory):
     paths = []
     for (path, directories, filenames) in os.walk(directory):
@@ -47,7 +52,7 @@ get_ui()
 
 setup(
     name="super_simple_test_sequencer",
-    version="0.10.0",
+    version="0.11.1",
     license="MIT License",
     author="JOT Automation Ltd.",
     author_email="rami.rahikkala@jotautomation.com",
