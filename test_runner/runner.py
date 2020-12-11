@@ -187,8 +187,6 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
                     test_instance = getattr(test_definitions, test_case)()
 
-                    results[dut_sn][test_case]["start_time"] = datetime.datetime.now()
-
                     try:
                         test_instance.test(common_definitions.INSTRUMENTS, dut_sn)
                     except Exception as err:
@@ -227,6 +225,8 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                             test_instance.clean_pass(common_definitions.INSTRUMENTS, dut_sn)
 
                     results[dut_sn][test_case]["end_time"] = datetime.datetime.now()
+                    results[dut_sn][test_case]["start_time"] = start_time
+
                     results[dut_sn][test_case]["duration_s"] = (
                         [dut_sn][test_case]["end_time"] - [dut_sn][test_case]["start_time"]
                     ).total_seconds()
