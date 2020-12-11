@@ -187,14 +187,13 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
                     test_instance = getattr(test_definitions, test_case)()
 
+                    results[dut_sn][test_case]["start_time"] = datetime.datetime.now()
+
                     try:
                         test_instance.test(common_definitions.INSTRUMENTS, dut_sn)
                     except Exception as err:
                         results[dut_sn][test_case] = test_instance.result_handler(
-                            None,
-                            start_time,
-                            datetime.datetime.now(),
-                            error=str(err.__class__) + ": " + str(err),
+                            None, error=str(err.__class__) + ": " + str(err)
                         )
                         # Clean error
                         if hasattr(test_instance, 'clean_error'):
@@ -202,15 +201,11 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                     else:
                         if test_case in test_definitions.LIMITS:
                             results[dut_sn][test_case] = test_instance.result_handler(
-                                test_definitions.LIMITS[test_case],
-                                start_time,
-                                datetime.datetime.now(),
+                                test_definitions.LIMITS[test_case]
                             )
                         else:
                             # Todo: "no-limit test" not working. Tjeu: Create test single test without limit
-                            results[dut_sn][test_case] = test_instance.result_handler(
-                                None, start_time, datetime.datetime.now()
-                            )
+                            results[dut_sn][test_case] = test_instance.result_handler(None)
                         # Clean
                         if hasattr(test_instance, 'clean'):
                             test_instance.clean(common_definitions.INSTRUMENTS, dut_sn)
@@ -232,6 +227,9 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                             test_instance.clean_pass(common_definitions.INSTRUMENTS, dut_sn)
 
                     results[dut_sn][test_case]["end_time"] = datetime.datetime.now()
+                    results[dut_sn][test_case]["duration_s"] = (
+                        [dut_sn][test_case]["end_time"] - [dut_sn][test_case]["start_time"]
+                    ).total_seconds()
 
                     last_dut_status[dut_name] = dut_status[dut_name]
                     dut_status[dut_name]['status'] = 'idle'
@@ -252,7 +250,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
             results["end_time"] = datetime.datetime.now()
 
-            results["duration_s"] = (results["start_time"] - results["end_time"]).total_seconds()
+            results["duration_s"] = (results["end_time"] - results["start_time"]).total_seconds()
 
             results["Overall result"] = overall_result
 

@@ -20,7 +20,7 @@ class TestCase(ABC):
         """Adds new result to result array"""
         self.results[name] = result
 
-    def result_handler(self, limits, start_time, end_time, error=None):
+    def result_handler(self, limits, error=None):
         """Checks if test is pass or fail. Can be overridden if needed."""
 
         tmp_result = {}
@@ -32,10 +32,7 @@ class TestCase(ABC):
                 tmp_result[result[0]] = {
                     "limit": inspect.getsource(limits[result[0]]),
                     "measurement": result[1],
-                    "result": limits[result[0]](result[1]),
-                    "started": start_time,
-                    "ended": end_time,
-                    "duration_s": (start_time - end_time).total_seconds()
+                    "result": limits[result[0]](result[1])
                 }
         else:
             tmp_result['Success'] = {"limit": None, "measurement": None, "result": True}
