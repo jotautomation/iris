@@ -7,7 +7,7 @@ import pathlib
 import json2html
 
 
-def create_report(json_report, duts):
+def create_report(report_json, report_dict, duts):
     """Creates and stores report for DUT(s)"""
 
     current = datetime.datetime.now()
@@ -21,4 +21,4 @@ def create_report(json_report, duts):
 
     report_file_path = report_path / (filename + '.html')
 
-    report_file_path.write_text(json2html.json2html.convert(json=json_report))
+    report_file_path.write_text(json2html.json2html.convert(json=report_json))

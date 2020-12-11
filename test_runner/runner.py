@@ -239,7 +239,9 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
         report_progress("Create test report", sequence=sequence)
         if not test_control['report_off']:
-            common_definitions.create_report(json.dumps(results), duts)
+            common_definitions.create_report(
+                json.dumps(results, indent=4, sort_keys=True, default=str), results, duts
+            )
 
         if test_control['single_run']:
             test_control['terminate'] = True
