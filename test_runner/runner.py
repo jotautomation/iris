@@ -220,7 +220,6 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                             test_instance.clean_fail(common_definitions.INSTRUMENTS, dut_sn)
 
                     else:
-                        dut_status[dut_name]['test_status'] = 'pass'
                         if hasattr(test_instance, 'clean_pass'):
                             test_instance.clean_pass(common_definitions.INSTRUMENTS, dut_sn)
 
@@ -241,6 +240,8 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
             for dut_name, dut_value in duts.items():
                 if 'failed_step' in dut_status[dut_name]:
                     dut_status[dut_name]['test_status'] = 'fail'
+                else:
+                    dut_status[dut_name]['test_status'] = 'pass'
 
                 last_dut_status[dut_name] = dut_status[dut_name]
 
