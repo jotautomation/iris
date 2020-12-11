@@ -52,7 +52,7 @@ get_ui()
 
 setup(
     name="super_simple_test_sequencer",
-    version="0.11.1",
+    version="0.12.0",
     license="MIT License",
     author="JOT Automation Ltd.",
     author_email="rami.rahikkala@jotautomation.com",
