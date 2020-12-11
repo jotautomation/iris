@@ -1,4 +1,5 @@
 """Runs the tests"""
+import datetime
 import sys
 import os
 import json
@@ -117,7 +118,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
             progress_json['overall_result'] = overall_result
 
         test_control['progress'] = progress_json
-        progess_queue.put(json.dumps(progress_json))
+        progess_queue.put(json.dumps(progress_json, default=str))
 
     common_definitions = get_common_definitions()
 
@@ -166,6 +167,8 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                     'sn': dut_value['sn'],
                 }
 
+            results["start_time"] = datetime.datetime.now()
+
             for test_case in tests:
 
                 for dut_name, dut_value in duts.items():
@@ -180,13 +183,18 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
                     results[dut_sn]["test_position"] = dut_name
 
+                    start_time = datetime.datetime.now()
+
                     test_instance = getattr(test_definitions, test_case)()
 
                     try:
                         test_instance.test(common_definitions.INSTRUMENTS, dut_sn)
                     except Exception as err:
                         results[dut_sn][test_case] = test_instance.result_handler(
-                            None, error=str(err.__class__) + ": " + str(err)
+                            None,
+                            start_time,
+                            datetime.datetime.now(),
+                            error=str(err.__class__) + ": " + str(err),
                         )
                         # Clean error
                         if hasattr(test_instance, 'clean_error'):
@@ -194,10 +202,15 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                     else:
                         if test_case in test_definitions.LIMITS:
                             results[dut_sn][test_case] = test_instance.result_handler(
-                                test_definitions.LIMITS[test_case]
+                                test_definitions.LIMITS[test_case],
+                                start_time,
+                                datetime.datetime.now(),
                             )
                         else:
-                            results[dut_sn][test_case] = test_instance.result_handler(None)
+                            # Todo: "no-limit test" not working. Tjeu: Create test single test without limit
+                            results[dut_sn][test_case] = test_instance.result_handler(
+                                None, start_time, datetime.datetime.now()
+                            )
                         # Clean
                         if hasattr(test_instance, 'clean'):
                             test_instance.clean(common_definitions.INSTRUMENTS, dut_sn)
@@ -214,6 +227,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                         if hasattr(test_instance, 'clean_pass'):
                             test_instance.clean_pass(common_definitions.INSTRUMENTS, dut_sn)
 
+                    results[dut_sn][test_case]["end_time"] = datetime.datetime.now()
 
                     last_dut_status[dut_name] = dut_status[dut_name]
                     dut_status[dut_name]['status'] = 'idle'
@@ -225,6 +239,10 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                 'finalize', dut_status, overall_result=overall_result, sequence=sequence
             )
             common_definitions.finalize_test(overall_result, duts, common_definitions.INSTRUMENTS)
+
+            results["end_time"] = datetime.datetime.now()
+
+            results["duration_s"] = (results["start_time"] - results["end_time"]).total_seconds()
 
             results["Overall result"] = overall_result
 
