@@ -228,7 +228,8 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                     results[dut_sn][test_case]["start_time"] = start_time
 
                     results[dut_sn][test_case]["duration_s"] = (
-                        [dut_sn][test_case]["end_time"] - [dut_sn][test_case]["start_time"]
+                        results[dut_sn][test_case]["end_time"]
+                        - results[dut_sn][test_case]["start_time"]
                     ).total_seconds()
 
                     last_dut_status[dut_name] = dut_status[dut_name]
