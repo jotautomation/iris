@@ -162,13 +162,14 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
             failed_steps = {}
 
             for dut_key, dut_value in duts.items():
-                dut_status[dut_key] = {
-                    'step': None,
-                    'status': 'idle',
-                    'test_status': None,
-                    'sn': dut_value['sn'],
-                }
-                failed_steps[dut_key] = {}
+                if dut_value:
+                    dut_status[dut_key] = {
+                        'step': None,
+                        'status': 'idle',
+                        'test_status': None,
+                        'sn': dut_value['sn'],
+                    }
+                    failed_steps[dut_key] = {}
 
 
             results["start_time"] = datetime.datetime.now()
@@ -177,6 +178,8 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
             for test_case in tests:
 
                 for dut_name, dut_value in duts.items():
+                    if not dut_value:
+                        continue
                     dut_sn = dut_value['sn']
                     dut_status[dut_name]['step'] = test_case
                     dut_status[dut_name]['status'] = 'testing'
@@ -243,6 +246,8 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                     report_progress('testing', dut_status, sequence=sequence)
 
             for dut_name, dut_value in duts.items():
+                if not dut_value:
+                    continue
                 if 'failed_step' in failed_steps[dut_name]:
                     dut_status[dut_name]['test_status'] = 'fail'
                     dut_status[dut_name]['failed_step'] = failed_steps[dut_name]['failed_step']
