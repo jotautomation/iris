@@ -195,6 +195,8 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
                     test_instance = getattr(test_definitions, test_case)()
 
+                    test_instance.previous_results = results[dut_sn]
+
                     try:
                         test_instance.test(common_definitions.INSTRUMENTS, dut_sn)
                     except Exception as err:
