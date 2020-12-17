@@ -172,7 +172,12 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                         'sn': dut_value['sn'],
                     }
                     failed_steps[dut_key] = {}
-
+                else:
+                    dut_status[dut_key] = {
+                        'step': None,
+                        'status': 'idle',
+                        'test_status': None,
+                    }
 
             results["start_time"] = datetime.datetime.now()
 
