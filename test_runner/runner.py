@@ -203,7 +203,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
                     test_instance = getattr(test_definitions, test_case)()
 
-                    if dut_sn in test_instance.previous_results:
+                    if dut_sn in prev_results:
 
                         test_instance.previous_results = prev_results[dut_sn]
 
@@ -228,7 +228,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                         if hasattr(test_instance, 'clean'):
                             test_instance.clean(common_definitions.INSTRUMENTS, dut_sn)
 
-                    prev_results[dut_sn] = test_instance.results
+                        prev_results[dut_sn][test_case] = test_instance.results
 
                     if not all([r[1]["result"] for r in results[dut_sn][test_case].items()]):
                         overall_result = False
