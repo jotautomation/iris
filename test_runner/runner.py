@@ -196,7 +196,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
                     if dut_sn not in results:
                         results[dut_sn] = {}
-                        prev_results[dut_sn]
+                        prev_results[dut_sn] = {}
 
                     results[dut_sn]["test_position"] = dut_name
 
