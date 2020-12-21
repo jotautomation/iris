@@ -281,7 +281,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
             results["duration_s"] = (results["end_time"] - results["start_time"]).total_seconds()
 
-            results["Overall result"] = overall_result
+            results["overall_result"] = overall_result
 
         except exceptions.Error as e:
             # TODO: write error to report
