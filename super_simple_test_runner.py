@@ -196,6 +196,6 @@ if ARGS.listener:
     )
     tornado.ioloop.IOLoop.current().start()
 
-MESSAGE_HANDLER = print
+# MESSAGE_HANDLER = print
 
 RUNNER_THREAD.join()
