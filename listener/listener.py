@@ -247,6 +247,7 @@ def create_listener(
             (r"/api", ApiRootHandler, init),
             (r"/api/duts", DutsHandler, init),
             (r"/api/progress", ProgressHandler, init),
+            (r"/api/latest_result/(.*)", tornado.web.StaticFileHandler, {'path': 'results/', "default_filename": "latest_result.html"}),
             (r"/api/testcontrol", TestRunnerHandler, init),
             (r"/api/testcontrol/([0-9]+)", TestRunnerHandler, init),
             (r"/(.*\.(js|json|html|css))", tornado.web.StaticFileHandler, {'path': ui_path}),
