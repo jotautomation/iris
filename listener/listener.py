@@ -186,7 +186,14 @@ class MessageWebsocketHandler(tornado.websocket.WebSocketHandler):
     def websocket_signal_handler(self, message):  # pylint: disable=W0613
         """Sends application state changes through websocket"""
 
-        self.loop.call_soon_threadsafe(self.write_message, message)
+        def send_a_message(self, msg):
+            try:
+                self.write_message(msg)
+            except Exception as e:
+                print(e)
+                raise e
+
+        self.loop.call_soon_threadsafe(send_a_message, self, message)
 
     def open(self, *args: str, **kwargs: str):
         """Called when websocket is opened"""
