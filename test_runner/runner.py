@@ -130,6 +130,10 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
     last_dut_status = {}
     dut_status = {}
+    failed_steps = {}
+    fail_reason_history = ''
+    fail_reason_count = 0
+    pass_count = 0
 
     while not test_control['terminate']:
         # Wait until you are allowed to run again i.e. pause
@@ -270,12 +274,22 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                     dut_status[dut_name]['test_status'] = 'fail'
                     dut_status[dut_name]['failed_step'] = failed_steps[dut_name]['failed_step']
                     send_message(f"{dut_value['sn']}: failed: {dut_status[dut_name]['failed_step']}")
+                    if fail_reason_history == failed_steps[dut_name]['failed_step']:
+                        fail_reason_count = fail_reason_count + 1
+                    else:
+                        fail_reason_count = 0
+                        fail_reason_history = failed_steps[dut_name]['failed_step']
+                    pass_count = 0
 
                 else:
                     dut_status[dut_name]['test_status'] = 'pass'
                     send_message(f"{dut_value['sn']}: passed")
+                    pass_count = pass_count + 1
 
                 last_dut_status[dut_name] = dut_status[dut_name]
+
+            if fail_reason_count > 4 and pass_count < 5:
+                send_message(f"WARNING: 5 or more consecutive fails on {fail_reason_history}")
 
             report_progress(
                 'finalize', dut_status, overall_result=overall_result, sequence=sequence
@@ -287,6 +301,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
             results["duration_s"] = (results["end_time"] - results["start_time"]).total_seconds()
 
             results["overall_result"] = overall_result
+
 
         except exceptions.Error as e:
             # TODO: write error to report
