@@ -143,6 +143,8 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
                 for dut in common_definitions.DUTS:
                     dut_status[dut] = {'step': None, 'status': 'wait', 'sn': None}
+                    if dut in failed_steps:
+                        dut_status[dut]['failed_step'] = failed_steps[dut]['failed_step']
                     if dut in last_dut_status:
                         dut_status[dut]['test_status'] = last_dut_status[dut]['test_status']
                     else:
@@ -151,6 +153,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                 report_progress("Prepare", duts=dut_status)
 
                 duts, sequence = get_sn_from_ui(dut_sn_queue)
+                common_definitions.prepare_test(common_definitions.INSTRUMENTS)
             else:
                 duts, sequence = common_definitions.prepare_test(common_definitions.INSTRUMENTS)
 
