@@ -227,10 +227,10 @@ def create_listener(
         return_message_handler,
 ):
     """Setup and create listener"""
-    import ui
+    # import ui
     from pathlib import Path
 
-    ui_path = Path(ui.__path__[0], 'build')
+    # ui_path = Path(ui.__path__[0], 'build')
 
     init = {'test_control': test_control, 'test_definitions': test_definitions}
 
@@ -257,8 +257,8 @@ def create_listener(
             (r"/api/latest_result/(.*)", tornado.web.StaticFileHandler, {'path': 'results/', "default_filename": "latest_result.html"}),
             (r"/api/testcontrol", TestRunnerHandler, init),
             (r"/api/testcontrol/([0-9]+)", TestRunnerHandler, init),
-            (r"/(.*\.(js|json|html|css))", tornado.web.StaticFileHandler, {'path': ui_path}),
-            (r"/(.*)", UiEntryHandler, {'path': ui_path, "default_filename": "index.html"}),
+            # (r"/(.*\.(js|json|html|css))", tornado.web.StaticFileHandler, {'path': ui_path}),
+            # (r"/(.*)", UiEntryHandler, {'path': ui_path, "default_filename": "index.html"}),
         ]
     )
 
