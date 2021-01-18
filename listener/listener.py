@@ -82,6 +82,12 @@ class SstsRequestHandler(tornado.web.RequestHandler):
         self.finish()
 
 
+class NoCacheStaticFileHandler(tornado.web.StaticFileHandler):
+    def set_extra_headers(self, path):
+        # Disable cache
+        self.set_header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+
+
 class ApiRootHandler(SstsRequestHandler):
     """Handles calls to "/api"""
 
@@ -219,12 +225,12 @@ class MessageWebsocketHandler(tornado.websocket.WebSocketHandler):
 
 
 def create_listener(
-        port,
-        test_control,
-        message_handlers,
-        progress_handlers,
-        test_definitions,
-        return_message_handler,
+    port,
+    test_control,
+    message_handlers,
+    progress_handlers,
+    test_definitions,
+    return_message_handler,
 ):
     """Setup and create listener"""
     # import ui
@@ -254,7 +260,11 @@ def create_listener(
             (r"/api", ApiRootHandler, init),
             (r"/api/duts", DutsHandler, init),
             (r"/api/progress", ProgressHandler, init),
-            (r"/api/latest_result/(.*)", tornado.web.StaticFileHandler, {'path': 'results/', "default_filename": "latest_result.html"}),
+            (
+                r"/api/latest_result/(.*)",
+                NoCacheStaticFileHandler,
+                {'path': 'results/', "default_filename": "latest_result.html"},
+            ),
             (r"/api/testcontrol", TestRunnerHandler, init),
             (r"/api/testcontrol/([0-9]+)", TestRunnerHandler, init),
             # (r"/(.*\.(js|json|html|css))", tornado.web.StaticFileHandler, {'path': ui_path}),
