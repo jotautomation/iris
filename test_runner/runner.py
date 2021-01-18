@@ -269,9 +269,11 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                 if 'failed_step' in failed_steps[dut_name]:
                     dut_status[dut_name]['test_status'] = 'fail'
                     dut_status[dut_name]['failed_step'] = failed_steps[dut_name]['failed_step']
+                    send_message(f"{dut_value['sn']}: failed: {dut_status[dut_name]['failed_step']}")
 
                 else:
                     dut_status[dut_name]['test_status'] = 'pass'
+                    send_message(f"{dut_value['sn']}: passed")
 
                 last_dut_status[dut_name] = dut_status[dut_name]
 
