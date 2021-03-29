@@ -1,6 +1,6 @@
 test_definitions/
 results/
-ui/
+ui/build/
 
 
 # Byte-compiled / optimized / DLL files

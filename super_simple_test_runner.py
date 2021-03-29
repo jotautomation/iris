@@ -110,9 +110,9 @@ if ARGS.create:
 
         copy_tree(common.__path__[0], './test_definitions/common')
 
-        import dist_files
+        import additional_dist_files
         from shutil import copyfile
-        copyfile(dist_files.__path__[0] + '/Dockerfile', './Dockerfile')
+        copyfile(additional_dist_files.__path__[0] + '/Dockerfile', './Dockerfile')
     else:
         print('./test_definitions/common already exists. Not copying it.')
 

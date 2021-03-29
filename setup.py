@@ -6,9 +6,10 @@ import pathlib
 
 
 """
-Commands to publish
-python setup.py bdist_wheel
-twine upload dist/*
+To publish:
+1. Make sure you have all the dependencies (Activate virtual env. Import Docker will fail silently, if missing!)
+2. python setup.py bdist_wheel
+3. twine upload dist/*
 
 """
 
@@ -30,7 +31,7 @@ def get_ui():
     file_stream.close()
     ctnr.remove()
     tar = tarfile.open("ui.tar")
-    tar.extractall('ui/build')
+    tar.extractall('ui')
     tar.close()
 
     # Remove tar file
@@ -61,7 +62,13 @@ setup(
     long_description_content_type="text/markdown",
     url="https://www.jotautomation.com",
     packages=find_packages(),
-    package_data={"ui": package_files("ui/build/"), "dist_files": package_files('dist_files/')},
+    # Package_data will add files to package(s) defined in previous file.
+    # Here we add files to ui/build and to additional_dist_files
+    # This way we get UI and other non-python files distributed
+    package_data={
+        "ui": package_files("ui/build/"),
+        "additional_dist_files": package_files('additional_dist_files/'),
+    },
     # packages=["test_definition_template/common", "test_definition_template/example_sequence", "test_runner/", "listener"],
     scripts=["super_simple_test_runner.py"],
     #    py_modules=['super_simple_test_runner', 'test_case', 'test_report_writer' 'test_report_writer'],
