@@ -21,10 +21,10 @@ def get_ui():
         return
     file_stream = open('ui.tar', 'wb')
     client = docker.from_env()
-    client.images.pull('ci.jot.local:5000/ssts_ui')
-    ctnr = client.containers.create('ci.jot.local:5000/ssts_ui', name='ssts_ui')
+    client.images.pull('ci.jot.local:5000/iris_ui')
+    ctnr = client.containers.create('ci.jot.local:5000/iris_ui', name='iris_ui')
     api_client = docker.APIClient()
-    bits, stat = api_client.get_archive('ssts_ui', '/usr/src/app/build')
+    bits, stat = api_client.get_archive('iris_ui', '/usr/src/app/build')
 
     for chunk in bits:
         file_stream.write(chunk)
@@ -52,7 +52,7 @@ with open("README.md", "r") as fh:
 get_ui()
 
 setup(
-    name="super_simple_test_sequencer",
+    name="jot-iris",
     version="0.14.8",
     license="MIT License",
     author="JOT Automation Ltd.",
@@ -69,9 +69,7 @@ setup(
         "ui": package_files("ui/build/"),
         "additional_dist_files": package_files('additional_dist_files/'),
     },
-    # packages=["test_definition_template/common", "test_definition_template/example_sequence", "test_runner/", "listener"],
-    scripts=["super_simple_test_runner.py"],
-    #    py_modules=['super_simple_test_runner', 'test_case', 'test_report_writer' 'test_report_writer'],
+    scripts=["iris.py"],
     install_requires=[
         "wheel",
         "json2html",

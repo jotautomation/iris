@@ -11,7 +11,7 @@ RESP_CONTENT_TYPE = 'application/vnd.siren+json; charset=UTF-8'
 
 # disable pylint warning for not overriding 'data_received' from RequestHandler
 # pylint: disable=W0223
-class SstsRequestHandler(tornado.web.RequestHandler):
+class IrisRequestHandler(tornado.web.RequestHandler):
     """Base class for REST API calls"""
 
     def initialize(self, test_control, test_definitions, **kwargs):
@@ -88,7 +88,7 @@ class NoCacheStaticFileHandler(tornado.web.StaticFileHandler):
         self.set_header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
 
 
-class ApiRootHandler(SstsRequestHandler):
+class ApiRootHandler(IrisRequestHandler):
     """Handles calls to "/api"""
 
     def handle_get(self, host, user, *args):  # pylint: disable=W0613
@@ -98,7 +98,7 @@ class ApiRootHandler(SstsRequestHandler):
         """Handle /api post"""
 
 
-class TestRunnerHandler(SstsRequestHandler):
+class TestRunnerHandler(IrisRequestHandler):
     """Handles starting of tests, returns status of tests etc."""
 
     def handle_get(self, host, user, *args):
@@ -121,7 +121,7 @@ class TestRunnerHandler(SstsRequestHandler):
                     self.test_control[key] = value
 
 
-class DutsHandler(SstsRequestHandler):
+class DutsHandler(IrisRequestHandler):
     """Handles starting of tests, returns status of tests etc."""
 
     def handle_get(self, host, user, *args):
@@ -130,7 +130,7 @@ class DutsHandler(SstsRequestHandler):
         return {'duts': self.test_definitions.DUTS}
 
 
-class ProgressHandler(SstsRequestHandler):
+class ProgressHandler(IrisRequestHandler):
     """Handles calls to /api/progress"""
 
     def handle_get(self, host, user, *args):

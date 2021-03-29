@@ -3,7 +3,7 @@
 ## Install
 
 ```
-pip install super-simple-test-sequencer
+pip install jot-iris
 ```
 
 ## Create new test sequence
@@ -11,7 +11,7 @@ pip install super-simple-test-sequencer
 This command creates new empty/template test sequence to test_definitions/ directory.
 
 ```
-super_simple_test_runner.py 
+iris.py --create NAME_OF_TEST_SUITE
 ```
 
 Modify the template at test_definitions/ to create your own sequence.
@@ -19,7 +19,7 @@ Modify the template at test_definitions/ to create your own sequence.
 ## Run sequence
 
 ```
-super_simple_test_runner.py 
+super_simple_test_runner.py
 ```
 
 

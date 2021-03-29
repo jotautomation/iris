@@ -2,7 +2,7 @@ FROM python:3-alpine
 
 RUN pip install wheel
 
-RUN pip install --upgrade super_simple_test_sequencer
+RUN pip install --upgrade jot-iris
 
 # Place you additional requirements to requirements.txt file and uncomment these lines:
 # COPY requirements.txt .
@@ -11,10 +11,10 @@ RUN pip install --upgrade super_simple_test_sequencer
 
 COPY . .
 
-# SSTS runs by default on port 4321
+# Iris runs by default on port 4321
 EXPOSE 4321
 
-ENTRYPOINT ["super_simple_test_runner.py"]
+ENTRYPOINT ["iris.py"]
 
 
 # BUILDING

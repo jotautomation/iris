@@ -21,7 +21,7 @@ import logging.config
 
 PORT = 4321
 
-PARSER = argparse.ArgumentParser(description="Super simple test sequencer.")
+PARSER = argparse.ArgumentParser(description="Iris test sequencer.")
 PARSER.add_argument("--single_run", "-s", help="Run only once", action="store_true")
 PARSER.add_argument(
     "--create",
