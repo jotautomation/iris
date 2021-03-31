@@ -34,5 +34,5 @@ def prepare_test(instruments):
     }, "testA")
 
 
-def shutdown():
+def shutdown(instruments):
     print("Shutdown")
