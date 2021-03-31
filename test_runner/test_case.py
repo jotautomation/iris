@@ -16,6 +16,12 @@ class TestCase(ABC):
     def test(self, instruments, dut):
         """Defines the test case."""
 
+    def pre_test(self, instruments, dut):
+        """This method will be run on background before the actual test"""
+
+    def post_test(self, instruments, dut):
+        """This method will be run on background after the actual test"""
+
     def new_result(self, name, result):
         """Adds new result to result array"""
         self.results[name] = result

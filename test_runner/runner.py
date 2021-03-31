@@ -140,6 +140,8 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
         test_control['run'].wait()
 
         try:
+            background_pre_tasks = {}
+            background_post_tasks = {}
 
             report_progress("Prepare", dut_status)
 
@@ -191,6 +193,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
             prev_results = {}
 
             for test_case in tests:
+                # Loop for testing
 
                 for dut_name, dut_value in duts.items():
                     if not dut_value:
@@ -209,14 +212,49 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
                     start_time = datetime.datetime.now()
 
-                    test_instance = getattr(test_definitions, test_case)()
+                    test_instance = getattr(
+                        test_definitions, test_case.replace('_pre', '').replace('_pre', '')
+                    )()
 
                     if dut_sn in prev_results:
 
                         test_instance.previous_results = prev_results[dut_sn]
 
                     try:
-                        test_instance.test(common_definitions.INSTRUMENTS, dut_sn)
+                        if '_pre' in test_case:
+                            # Start pre task and store it to dictionary
+                            test_case_name = test_case.replace('_pre', '')
+
+                            if test_case_name not in background_pre_tasks:
+                                background_pre_tasks[test_case_name] = {}
+
+                            background_pre_tasks[test_case_name][dut_name] = threading.Thread(
+                                target=test_instance.pre_test,
+                                args=(common_definitions.INSTRUMENTS, dut_sn),
+                            )
+                            background_pre_tasks[test_case_name][dut_name].start()
+                        else:
+                            # Wait for pre task
+                            if test_case in background_pre_tasks:
+                                background_pre_tasks[test_case][dut_name].join()
+                            else:
+                                # Or if pre task is not run, run it now
+                                test_instance.pre_test(
+                                    common_definitions.INSTRUMENTS, dut_sn
+                                )
+
+                            test_instance.test(common_definitions.INSTRUMENTS, dut_sn)
+
+                            # Start post task and store it to dictionary
+                            if test_case not in background_post_tasks:
+                                background_post_tasks[test_case] = {}
+
+                            background_post_tasks[test_case][dut_name] = threading.Thread(
+                                target=test_instance.post_test,
+                                args=(common_definitions.INSTRUMENTS, dut_sn),
+                            )
+                            background_post_tasks[test_case][dut_name].start()
+
                     except Exception as err:
                         results[dut_sn][test_case] = test_instance.result_handler(
                             None, error=str(err.__class__) + ": " + str(err)
@@ -224,19 +262,36 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                         # Clean error
                         if hasattr(test_instance, 'clean_error'):
                             test_instance.clean_error(common_definitions.INSTRUMENTS, dut_sn)
-                    else:
-                        if test_case in test_definitions.LIMITS:
-                            results[dut_sn][test_case] = test_instance.result_handler(
-                                test_definitions.LIMITS[test_case]
-                            )
-                        else:
-                            # Todo: "no-limit test" not working. Tjeu: Create test single test without limit
-                            results[dut_sn][test_case] = test_instance.result_handler(None)
-                        # Clean
-                        if hasattr(test_instance, 'clean'):
-                            test_instance.clean(common_definitions.INSTRUMENTS, dut_sn)
 
-                        prev_results[dut_sn][test_case] = test_instance.results
+            for test_case in tests:
+                # Loop for evaluating test results
+
+                for dut_name, dut_value in duts.items():
+                    # Wait background task
+                    # But only if task exists.
+                    # If there was an exception during testing there might not be.
+                    if (
+                        test_case in background_post_tasks
+                        and dut_name in background_post_tasks[test_case]
+                    ):
+                        background_post_tasks[test_case][dut_name].join()
+
+                    if not dut_value:
+                        continue
+                    dut_sn = dut_value['sn']
+
+                    if test_case in test_definitions.LIMITS:
+                        results[dut_sn][test_case] = test_instance.result_handler(
+                            test_definitions.LIMITS[test_case]
+                        )
+                    else:
+                        # Todo: "no-limit test" not working. Tjeu: Create test single test without limit
+                        results[dut_sn][test_case] = test_instance.result_handler(None)
+                    # Clean
+                    if hasattr(test_instance, 'clean'):
+                        test_instance.clean(common_definitions.INSTRUMENTS, dut_sn)
+
+                    prev_results[dut_sn][test_case] = test_instance.results
 
                     if not all([r[1]["result"] for r in results[dut_sn][test_case].items()]):
                         overall_result = False
@@ -273,7 +328,9 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                 if 'failed_step' in failed_steps[dut_name]:
                     dut_status[dut_name]['test_status'] = 'fail'
                     dut_status[dut_name]['failed_step'] = failed_steps[dut_name]['failed_step']
-                    send_message(f"{dut_value['sn']}: FAILED: {dut_status[dut_name]['failed_step']}")
+                    send_message(
+                        f"{dut_value['sn']}: FAILED: {dut_status[dut_name]['failed_step']}"
+                    )
                     if fail_reason_history == failed_steps[dut_name]['failed_step']:
                         fail_reason_count = fail_reason_count + 1
                     else:
@@ -301,7 +358,6 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
             results["duration_s"] = (results["end_time"] - results["start_time"]).total_seconds()
 
             results["overall_result"] = overall_result
-
 
         except exceptions.Error as e:
             # TODO: write error to report
