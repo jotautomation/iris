@@ -1,10 +1,14 @@
 from test_runner.test_case import TestCase
 
 
-class first(TestCase):
-    def pre_test(self, instruments, dut):
+class First(TestCase):
+    def pre_test(self, instruments, dut, parameters):
+        # pre_test() will be run always before test().
+        # Use "First_pre" to specify when pre_test of this class is started.
+        # If "First_pre" is not specified, pre_test will be run just before the test.
         pass
-    def test(self, instruments, dut):
+
+    def test(self, instruments, dut, parameters):
         print("At first test case")
         self.new_result("Measurement1", 123)
         # instruments["G5"].do_something_with_instrument()
@@ -12,5 +16,6 @@ class first(TestCase):
         import time
         time.sleep(2)
 
-    def post_test(self, instruments, dut):
+    def post_test(self, instruments, dut, parameters):
+        # post_test will be run always on background after the test
         pass

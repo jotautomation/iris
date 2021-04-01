@@ -1,11 +1,11 @@
 from test_runner.test_case import TestCase
 
 
-class second(TestCase):
-    def pre_test(self, instruments, dut):
+class Second(TestCase):
+    def pre_test(self, instruments, dut, parameters):
         pass
 
-    def test(self, instruments, dut):
+    def test(self, instruments, dut, parameters):
         print("At second test case")
         self.new_result("Measurement1", 123)
         # instruments["G5"].do_something_with_instrument()
@@ -13,5 +13,5 @@ class second(TestCase):
         import time
         time.sleep(2)
 
-    def post_test(self, instruments, dut):
+    def post_test(self, instruments, dut, parameters):
         pass

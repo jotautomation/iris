@@ -64,6 +64,23 @@ def get_test_definitions(sequence_name):
     return imp
 
 
+def get_test_pool_definitions():
+    """Returns test definition pool"""
+    sys.path.append(os.getcwd())
+    sys.path.append(os.path.join(os.getcwd(), 'test_definitions'))
+
+    try:
+        import test_case_pool
+
+        # TODO: This hides also errors on nested imports
+    except ImportError as err:
+        print(err)
+        print("test_case_pool missing?")
+        sys.exit(-1)
+
+    return test_case_pool
+
+
 def get_sn_from_ui(dut_sn_queue):
     """Returns serial numbers from UI"""
 
@@ -167,6 +184,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
             overall_result = True
 
             test_definitions = get_test_definitions(sequence)
+            test_pool = get_test_pool_definitions()
 
             tests = [t for t in test_definitions.TESTS if t not in test_definitions.SKIP]
 
@@ -212,9 +230,16 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
                     start_time = datetime.datetime.now()
 
-                    test_instance = getattr(
-                        test_definitions, test_case.replace('_pre', '').replace('_pre', '')
-                    )()
+                    test_case_name = test_case.replace('_pre', '').replace('_pre', '')
+
+                    if hasattr(test_definitions, test_case_name):
+                        test_instance = getattr(test_definitions, test_case_name)()
+                    elif hasattr(test_pool, test_case_name):
+                        test_instance = getattr(test_pool, test_case_name)()
+                    else:
+                        raise exceptions.TestCaseNotFound(
+                            "Cannot find specified test case: " + test_case_name
+                        )
 
                     if dut_sn in prev_results:
 
@@ -223,14 +248,17 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                     try:
                         if '_pre' in test_case:
                             # Start pre task and store it to dictionary
-                            test_case_name = test_case.replace('_pre', '')
 
                             if test_case_name not in background_pre_tasks:
                                 background_pre_tasks[test_case_name] = {}
 
                             background_pre_tasks[test_case_name][dut_name] = threading.Thread(
                                 target=test_instance.pre_test,
-                                args=(common_definitions.INSTRUMENTS, dut_sn),
+                                args=(
+                                    common_definitions.INSTRUMENTS,
+                                    dut_sn,
+                                    test_definitions.PARAMETERS,
+                                ),
                             )
                             background_pre_tasks[test_case_name][dut_name].start()
                         else:
@@ -240,10 +268,16 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                             else:
                                 # Or if pre task is not run, run it now
                                 test_instance.pre_test(
-                                    common_definitions.INSTRUMENTS, dut_sn
+                                    common_definitions.INSTRUMENTS,
+                                    dut_sn,
+                                    test_definitions.PARAMETERS,
                                 )
 
-                            test_instance.test(common_definitions.INSTRUMENTS, dut_sn)
+                            test_instance.test(
+                                common_definitions.INSTRUMENTS,
+                                dut_sn,
+                                test_definitions.PARAMETERS,
+                            )
 
                             # Start post task and store it to dictionary
                             if test_case not in background_post_tasks:
@@ -251,7 +285,11 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
                             background_post_tasks[test_case][dut_name] = threading.Thread(
                                 target=test_instance.post_test,
-                                args=(common_definitions.INSTRUMENTS, dut_sn),
+                                args=(
+                                    common_definitions.INSTRUMENTS,
+                                    dut_sn,
+                                    test_definitions.PARAMETERS,
+                                ),
                             )
                             background_post_tasks[test_case][dut_name].start()
 
@@ -359,7 +397,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
             results["overall_result"] = overall_result
 
-        except exceptions.Error as e:
+        except exceptions.IrisError as e:
             # TODO: write error to report
             print(e)
             raise
@@ -371,7 +409,10 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
         report_progress("Create test report", sequence=sequence)
         if not test_control['report_off']:
             common_definitions.create_report(
-                json.dumps(results, indent=4, default=str), results, duts
+                json.dumps(results, indent=4, default=str),
+                results,
+                duts,
+                test_definitions.PARAMETERS,
             )
 
         if test_control['single_run']:

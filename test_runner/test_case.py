@@ -13,13 +13,13 @@ class TestCase(ABC):
         self.logger = logging.getLogger('test_case')
 
     @abstractmethod
-    def test(self, instruments, dut):
+    def test(self, instruments, dut, parameters):
         """Defines the test case."""
 
-    def pre_test(self, instruments, dut):
+    def pre_test(self, instruments, dut, parameters):
         """This method will be run on background before the actual test"""
 
-    def post_test(self, instruments, dut):
+    def post_test(self, instruments, dut, parameters):
         """This method will be run on background after the actual test"""
 
     def new_result(self, name, result):

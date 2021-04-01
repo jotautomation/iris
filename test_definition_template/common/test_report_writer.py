@@ -7,7 +7,7 @@ import pathlib
 import json2html
 
 
-def create_report(report_json, report_dict, duts):
+def create_report(report_json, report_dict, duts, parameters):
     """Creates and stores report for DUT(s)"""
 
     current = datetime.datetime.now()

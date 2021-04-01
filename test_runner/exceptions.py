@@ -1,10 +1,10 @@
-class Error(Exception):
+class IrisError(Exception):
     """Base class for exceptions in this module."""
 
     pass
 
 
-class InputError(Error):
+class InputError(IrisError):
     # TODO: modify this to define on which step error happened etc.
     # And give proper name
     """Exception raised for errors in the input.
@@ -17,3 +17,9 @@ class InputError(Error):
     def __init__(self, expression, message):
         self.expression = expression
         self.message = message
+
+
+class TestCaseNotFound(IrisError):
+    """Raised when test case is not found"""
+
+    pass

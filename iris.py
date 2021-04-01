@@ -96,6 +96,7 @@ LOGGER.debug("Logging initialized")
 if ARGS.create:
 
     from test_definition_template import example_sequence
+    from test_definition_template import test_case_pool
 
     TEST_DEF_PATH = os.path.join("./test_definitions", ARGS.create[0])
 
@@ -104,6 +105,7 @@ if ARGS.create:
         sys.exit(-1)
 
     copy_tree(example_sequence.__path__[0], TEST_DEF_PATH)
+    copy_tree(test_case_pool.__path__[0], './test_definitions/test_case_pool')
 
     if not os.path.isdir('./test_definitions/common'):
         from test_definition_template import common
