@@ -336,7 +336,16 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
                     prev_results[dut_sn][test_case] = test_instance.results
 
-                    if not all([r[1]["result"] for r in results[dut_sn][test_case].items()]):
+                    if all(
+                        [
+                            r[1]["result"]
+                            for r in results[dut_sn][test_case].items()
+                            if isinstance(r[1]["result"], bool)
+                        ]
+                    ):
+                        if hasattr(test_instance, 'clean_pass'):
+                            test_instance.clean_pass(common_definitions.INSTRUMENTS, dut_sn)
+                    else:
                         overall_result = False
                         if 'failed_step' in failed_steps[dut_name]:
                             failed_steps[dut_name]['failed_step'] = (
@@ -346,10 +355,6 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                             failed_steps[dut_name]['failed_step'] = test_case
                         if hasattr(test_instance, 'clean_fail'):
                             test_instance.clean_fail(common_definitions.INSTRUMENTS, dut_sn)
-
-                    else:
-                        if hasattr(test_instance, 'clean_pass'):
-                            test_instance.clean_pass(common_definitions.INSTRUMENTS, dut_sn)
 
                     results[dut_sn][test_case]["end_time"] = datetime.datetime.now()
                     results[dut_sn][test_case]["start_time"] = start_time
