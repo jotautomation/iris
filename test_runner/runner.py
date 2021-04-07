@@ -114,6 +114,17 @@ def get_sn_from_ui(dut_sn_queue):
     return (duts_sn, sequence)
 
 
+def get_test_instance(test_definitions, test_case, test_pool):
+    test_case_name = test_case.replace('_pre', '').replace('_pre', '')
+    if hasattr(test_definitions, test_case_name):
+        test_instance = getattr(test_definitions, test_case_name)()
+    elif hasattr(test_pool, test_case_name):
+        test_instance = getattr(test_pool, test_case_name)()
+    else:
+        raise exceptions.TestCaseNotFound("Cannot find specified test case: " + test_case_name)
+    return test_instance
+
+
 def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
     """Starts the testing"""
 
@@ -232,14 +243,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
                     test_case_name = test_case.replace('_pre', '').replace('_pre', '')
 
-                    if hasattr(test_definitions, test_case_name):
-                        test_instance = getattr(test_definitions, test_case_name)()
-                    elif hasattr(test_pool, test_case_name):
-                        test_instance = getattr(test_pool, test_case_name)()
-                    else:
-                        raise exceptions.TestCaseNotFound(
-                            "Cannot find specified test case: " + test_case_name
-                        )
+                    test_instance = get_test_instance(test_definitions, test_case_name, test_pool)
 
                     if dut_sn in prev_results:
 
@@ -303,6 +307,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
             for test_case in tests:
                 # Loop for evaluating test results
+                test_instance = get_test_instance(test_definitions, test_case, test_pool)
 
                 for dut_name, dut_value in duts.items():
                     # Wait background task
