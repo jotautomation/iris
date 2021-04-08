@@ -1,11 +1,17 @@
 """Runs the tests"""
 import datetime
-import sys
-import os
 import json
-import importlib
 import threading
+from test_runner import helpers
 from test_runner import exceptions
+
+
+def get_common_definitions():
+    """Returns test definitions"""
+
+    return helpers.import_by_name(
+        'common', "No test definitions defined? Create definition template with --create argument."
+    )
 
 
 def get_test_control():
@@ -23,106 +29,6 @@ def get_test_control():
         'get_sn_from_ui': get_common_definitions().SN_FROM_UI,
         'test_sequences': get_common_definitions().TEST_SEQUENCES,
     }
-
-
-def get_common_definitions():
-    """Returns test definitions"""
-
-    sys.path.append(os.getcwd())
-    sys.path.append(os.path.join(os.getcwd(), 'test_definitions'))
-
-    try:
-        import common
-
-        # TODO: This hides also errors on nested imports
-    except ImportError as err:
-        print(err)
-        print("No test definitions defined? Create definition template with --create argument.")
-        sys.exit(-1)
-
-    return common
-
-
-def get_test_definitions(sequence_name):
-    """Returns test definitions"""
-
-    sys.path.append(os.getcwd())
-    sys.path.append(os.path.join(os.getcwd(), 'test_definitions'))
-
-    try:
-        imp = importlib.import_module(sequence_name)
-    except ImportError as err:
-        print(
-            "Error loading "
-            + sequence_name
-            + ". Remember, you can create new definition template with --create argument."
-        )
-        print(err)
-        print(sys.exc_info()[0])
-        sys.exit(-1)
-
-    return imp
-
-
-def get_test_pool_definitions():
-    """Returns test definition pool"""
-    sys.path.append(os.getcwd())
-    sys.path.append(os.path.join(os.getcwd(), 'test_definitions'))
-
-    try:
-        import test_case_pool
-
-        # TODO: This hides also errors on nested imports
-    except ImportError as err:
-        print(err)
-        print("test_case_pool missing?")
-        sys.exit(-1)
-
-    return test_case_pool
-
-
-def get_sn_from_ui(dut_sn_queue):
-    """Returns serial numbers from UI"""
-
-    sequence = None
-    common_definitions = get_common_definitions()
-    duts_sn = {dut: {'sn': None} for dut in common_definitions.DUTS}
-    print('Wait SNs from UI for duts: ' + str(common_definitions.DUTS))
-    while True:
-        msg = dut_sn_queue.get()
-
-        try:
-            msg = json.loads(msg)
-            for dut in msg:
-                if dut in duts_sn:
-                    duts_sn[dut]['sn'] = msg[dut]
-            if 'sequence' in msg:
-                sequence = msg['sequence']
-
-        except (AttributeError, json.decoder.JSONDecodeError):
-            pass
-
-        # Loop until all DUTs have received a serial number
-        for dut in duts_sn:
-            if not duts_sn[dut]['sn']:
-                break
-        else:
-            print("All DUT serial numbers received from UI")
-            print("Selected test sequence", sequence)
-            break
-
-    return (duts_sn, sequence)
-
-
-def get_test_instance(test_definitions, test_case, test_pool):
-    test_case_name = test_case.replace('_pre', '').replace('_pre', '')
-    if hasattr(test_definitions, test_case_name):
-        test_instance = getattr(test_definitions, test_case_name)()
-    elif hasattr(test_pool, test_case_name):
-        test_instance = getattr(test_pool, test_case_name)()
-    else:
-        raise exceptions.TestCaseNotFound("Cannot find specified test case: " + test_case_name)
-    return test_instance
 
 
 def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
@@ -152,8 +58,10 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
     report_progress("Boot")
 
+    # Initialize all instruments
     common_definitions.instrument_initialization()
 
+    # Execute boot_up defined for the test sequence
     common_definitions.boot_up()
 
     last_dut_status = {}
@@ -163,16 +71,17 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
     fail_reason_count = 0
     pass_count = 0
 
+    # Start the actual test loop
     while not test_control['terminate']:
         # Wait until you are allowed to run again i.e. pause
         test_control['run'].wait()
-
         try:
             background_pre_tasks = {}
             background_post_tasks = {}
 
             report_progress("Prepare", dut_status)
 
+            # DUT sn may come from UI
             if test_control['get_sn_from_ui']:
 
                 for dut in common_definitions.DUTS:
@@ -189,29 +98,38 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                 duts, sequence = get_sn_from_ui(dut_sn_queue)
                 common_definitions.prepare_test(common_definitions.INSTRUMENTS)
             else:
+                # Or from prepare_test function
                 duts, sequence = common_definitions.prepare_test(common_definitions.INSTRUMENTS)
 
             results = {}
             overall_result = True
 
-            test_definitions = get_test_definitions(sequence)
-            test_pool = get_test_pool_definitions()
+            # Fetch test definitions i.e. import module
+            test_definitions = helpers.get_test_definitions(sequence)
 
+            # Fetch test case pool too
+            test_pool = helpers.get_test_pool_definitions()
+
+            # Remove skipped tests from test list
             tests = [t for t in test_definitions.TESTS if t not in test_definitions.SKIP]
 
+            # Here we will store failed steps
             failed_steps = {}
 
-            for dut_key, dut_value in duts.items():
-                if dut_value:
-                    dut_status[dut_key] = {
+            # Create DUT status dictionary
+            # If this is not first round, clear almost all parameters,
+            # but keep showing failed steps on test position
+            for test_position, dut_sn in duts.items():
+                if dut_sn:
+                    dut_status[test_position] = {
                         'step': None,
                         'status': 'idle',
                         'test_status': None,
-                        'sn': dut_value['sn'],
+                        'sn': dut_sn['sn'],
                     }
-                    failed_steps[dut_key] = {}
-                elif dut_key not in last_dut_status:
-                    dut_status[dut_key] = {
+                    failed_steps[test_position] = {}
+                elif test_position not in last_dut_status:
+                    dut_status[test_position] = {
                         'step': None,
                         'status': 'idle',
                         'test_status': None,
@@ -219,35 +137,54 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
             results["start_time"] = datetime.datetime.now()
 
-            prev_results = {}
+            # Store results so that test cases can see results of the other cases
+            result_history = {}
 
+            test_instances = {}
+
+            # Run all test cases
             for test_case in tests:
                 # Loop for testing
 
-                for dut_name, dut_value in duts.items():
-                    if not dut_value:
+                # Run test cases for each DUT in DUT position
+                for test_position, dut_sn_dict in duts.items():
+
+                    # Set sn_dict to be none, if you don't want to run any tests for the test position
+                    # but want to keep showing the position on the UI
+                    if not dut_sn_dict:
                         continue
-                    dut_sn = dut_value['sn']
-                    dut_status[dut_name]['step'] = test_case
-                    dut_status[dut_name]['status'] = 'testing'
+
+                    # Extract SN from sn dict (sn dict may contain other data that is used by test case)
+                    dut_sn = dut_sn_dict['sn']
+
+                    # Fill DUT data
+                    dut_status[test_position]['step'] = test_case
+                    dut_status[test_position]['status'] = 'testing'
 
                     report_progress('testing', dut_status, sequence=sequence)
 
+                    # Create results data structure
                     if dut_sn not in results:
                         results[dut_sn] = {}
-                        prev_results[dut_sn] = {}
+                        result_history[dut_sn] = {}
 
-                    results[dut_sn]["test_position"] = dut_name
+                    results[dut_sn]["test_position"] = test_position
 
                     start_time = datetime.datetime.now()
 
                     test_case_name = test_case.replace('_pre', '').replace('_pre', '')
 
-                    test_instance = get_test_instance(test_definitions, test_case_name, test_pool)
+                    # Create test case instance
+                    test_instance = helpers.get_test_instance(
+                        test_definitions, test_case_name, test_pool
+                    )
 
-                    if dut_sn in prev_results:
+                    # And store it for later use
+                    test_instances[test_case_name] = test_instance
 
-                        test_instance.previous_results = prev_results[dut_sn]
+                    if dut_sn in result_history:
+
+                        test_instance.previous_results = result_history[dut_sn]
 
                     try:
                         if '_pre' in test_case:
@@ -256,7 +193,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                             if test_case_name not in background_pre_tasks:
                                 background_pre_tasks[test_case_name] = {}
 
-                            background_pre_tasks[test_case_name][dut_name] = threading.Thread(
+                            background_pre_tasks[test_case_name][test_position] = threading.Thread(
                                 target=test_instance.pre_test,
                                 args=(
                                     common_definitions.INSTRUMENTS,
@@ -264,11 +201,11 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                                     test_definitions.PARAMETERS,
                                 ),
                             )
-                            background_pre_tasks[test_case_name][dut_name].start()
+                            background_pre_tasks[test_case_name][test_position].start()
                         else:
                             # Wait for pre task
                             if test_case in background_pre_tasks:
-                                background_pre_tasks[test_case][dut_name].join()
+                                background_pre_tasks[test_case][test_position].join()
                             else:
                                 # Or if pre task is not run, run it now
                                 test_instance.pre_test(
@@ -277,6 +214,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                                     test_definitions.PARAMETERS,
                                 )
 
+                            # Run the actual test case
                             test_instance.test(
                                 common_definitions.INSTRUMENTS,
                                 dut_sn,
@@ -287,7 +225,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                             if test_case not in background_post_tasks:
                                 background_post_tasks[test_case] = {}
 
-                            background_post_tasks[test_case][dut_name] = threading.Thread(
+                            background_post_tasks[test_case][test_position] = threading.Thread(
                                 target=test_instance.post_test,
                                 args=(
                                     common_definitions.INSTRUMENTS,
@@ -295,103 +233,100 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                                     test_definitions.PARAMETERS,
                                 ),
                             )
-                            background_post_tasks[test_case][dut_name].start()
+                            background_post_tasks[test_case][test_position].start()
 
                     except Exception as err:
                         results[dut_sn][test_case] = test_instance.result_handler(
                             None, error=str(err.__class__) + ": " + str(err)
                         )
-                        # Clean error
+                        # Call clean error method on test case on error
                         if hasattr(test_instance, 'clean_error'):
                             test_instance.clean_error(common_definitions.INSTRUMENTS, dut_sn)
 
-            for test_case in tests:
-                # Loop for evaluating test results
-                test_instance = get_test_instance(test_definitions, test_case, test_pool)
-
-                for dut_name, dut_value in duts.items():
-                    # Wait background task
-                    # But only if task exists.
-                    # If there was an exception during testing there might not be.
-                    if (
-                        test_case in background_post_tasks
-                        and dut_name in background_post_tasks[test_case]
-                    ):
-                        background_post_tasks[test_case][dut_name].join()
-
-                    if not dut_value:
-                        continue
-                    dut_sn = dut_value['sn']
-
-                    if test_case in test_definitions.LIMITS:
-                        results[dut_sn][test_case] = test_instance.result_handler(
-                            test_definitions.LIMITS[test_case]
-                        )
+                    # Evaluate test results first time (if no error)
+                    # We will evaluate them again after post tasks are done
+                    # Measurement can be added or changed at any time so
+                    # the actual result may change still on post task.
                     else:
-                        # Todo: "no-limit test" not working. Tjeu: Create test single test without limit
-                        results[dut_sn][test_case] = test_instance.result_handler(None)
-                    # Clean
-                    if hasattr(test_instance, 'clean'):
-                        test_instance.clean(common_definitions.INSTRUMENTS, dut_sn)
-
-                    prev_results[dut_sn][test_case] = test_instance.results
-
-                    if all(
-                        [
-                            r[1]["result"]
-                            for r in results[dut_sn][test_case].items()
-                            if isinstance(r[1]["result"], bool)
-                        ]
-                    ):
-                        if hasattr(test_instance, 'clean_pass'):
-                            test_instance.clean_pass(common_definitions.INSTRUMENTS, dut_sn)
-                    else:
-                        overall_result = False
-                        if 'failed_step' in failed_steps[dut_name]:
-                            failed_steps[dut_name]['failed_step'] = (
-                                failed_steps[dut_name]['failed_step'] + ', ' + test_case
+                        if test_case in test_definitions.LIMITS:
+                            results[dut_sn][test_case] = test_instance.result_handler(
+                                test_definitions.LIMITS[test_case]
                             )
                         else:
-                            failed_steps[dut_name]['failed_step'] = test_case
-                        if hasattr(test_instance, 'clean_fail'):
-                            test_instance.clean_fail(common_definitions.INSTRUMENTS, dut_sn)
+                            # Todo: "no-limit test" not working. Tjeu: Create test single test without limit
+                            results[dut_sn][test_case] = test_instance.result_handler(None)
 
-                    results[dut_sn][test_case]["end_time"] = datetime.datetime.now()
-                    results[dut_sn][test_case]["start_time"] = start_time
+                        # Call clean method on test case if it exists
+                        if hasattr(test_instance, 'clean'):
+                            test_instance.clean(common_definitions.INSTRUMENTS, dut_sn)
 
-                    results[dut_sn][test_case]["duration_s"] = (
-                        results[dut_sn][test_case]["end_time"]
-                        - results[dut_sn][test_case]["start_time"]
-                    ).total_seconds()
+                        result_history[dut_sn][test_case] = test_instance.results
 
-                    last_dut_status[dut_name] = dut_status[dut_name]
-                    dut_status[dut_name]['status'] = 'idle'
-                    dut_status[dut_name]['step'] = None
+                        # Set overall result to false if boolean false in any of results
+                        if all(
+                            [
+                                r[1]["result"]
+                                for r in results[dut_sn][test_case].items()
+                                if isinstance(r[1]["result"], bool)
+                            ]
+                        ):
+                            # If test case passed, call clean_pass method
+                            if hasattr(test_instance, 'clean_pass'):
+                                test_instance.clean_pass(common_definitions.INSTRUMENTS, dut_sn)
+                        else:
+                            overall_result = False
 
-                    report_progress('testing', dut_status, sequence=sequence)
+                            # Store failed step information for showing it on UI
+                            if 'failed_step' in failed_steps[test_position]:
+                                failed_steps[test_position]['failed_step'] = (
+                                    failed_steps[test_position]['failed_step'] + ', ' + test_case
+                                )
+                            else:
+                                failed_steps[test_position]['failed_step'] = test_case
 
-            for dut_name, dut_value in duts.items():
+                            # If test case failed, call clean_fail method
+                            if hasattr(test_instance, 'clean_fail'):
+                                test_instance.clean_fail(common_definitions.INSTRUMENTS, dut_sn)
+
+                        results[dut_sn][test_case]["end_time"] = datetime.datetime.now()
+                        results[dut_sn][test_case]["start_time"] = start_time
+
+                        results[dut_sn][test_case]["duration_s"] = (
+                            results[dut_sn][test_case]["end_time"]
+                            - results[dut_sn][test_case]["start_time"]
+                        ).total_seconds()
+
+                        last_dut_status[test_position] = dut_status[test_position]
+                        dut_status[test_position]['status'] = 'idle'
+                        dut_status[test_position]['step'] = None
+
+                        report_progress('testing', dut_status, sequence=sequence)
+
+            for test_position, dut_value in duts.items():
                 if not dut_value:
                     continue
-                if 'failed_step' in failed_steps[dut_name]:
-                    dut_status[dut_name]['test_status'] = 'fail'
-                    dut_status[dut_name]['failed_step'] = failed_steps[dut_name]['failed_step']
+                # Inform UI about the final results
+                if 'failed_step' in failed_steps[test_position]:
+                    dut_status[test_position]['test_status'] = 'fail'
+                    dut_status[test_position]['failed_step'] = failed_steps[test_position][
+                        'failed_step'
+                    ]
                     send_message(
-                        f"{dut_value['sn']}: FAILED: {dut_status[dut_name]['failed_step']}"
+                        f"{dut_value['sn']}: FAILED: {dut_status[test_position]['failed_step']}"
                     )
-                    if fail_reason_history == failed_steps[dut_name]['failed_step']:
+                    if fail_reason_history == failed_steps[test_position]['failed_step']:
                         fail_reason_count = fail_reason_count + 1
                     else:
                         fail_reason_count = 0
-                        fail_reason_history = failed_steps[dut_name]['failed_step']
+                        fail_reason_history = failed_steps[test_position]['failed_step']
                     pass_count = 0
 
                 else:
-                    dut_status[dut_name]['test_status'] = 'pass'
+                    dut_status[test_position]['test_status'] = 'pass'
                     send_message(f"{dut_value['sn']}: PASSED")
                     pass_count = pass_count + 1
 
-                last_dut_status[dut_name] = dut_status[dut_name]
+                last_dut_status[test_position] = dut_status[test_position]
 
             if fail_reason_count > 4 and pass_count < 5:
                 send_message(f"WARNING: 5 or more consecutive fails on {fail_reason_history}")
