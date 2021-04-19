@@ -28,9 +28,9 @@ def prepare_test(instruments):
     # Here we use testA as an example. Thus you must create
     # the sequence with 'python super_simple_test_runner.py -c testA'
     return ({
-        "left": {'sn': str(uuid.uuid4())},
-        "right": {'sn': str(uuid.uuid4())},
-        "middle": {'sn': str(uuid.uuid4())},
+        "1": {'sn': str(uuid.uuid4())},
+        "2": {'sn': str(uuid.uuid4())},
+        "3": {'sn': str(uuid.uuid4())},
     }, "testA")
 
 

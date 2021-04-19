@@ -5,15 +5,15 @@ from test_runner.test_case import TestCase
 
 
 class PoolTestCase(TestCase):
-    def pre_test(self, instruments, dut, parameters):
+    def pre_test(self):
         pass
 
-    def test(self, instruments, dut, parameters):
+    def test(self):
         print("Running test case from pool")
         print(
             "Parameters can be used to parametrize the testing: "
-            + parameters.EXAMPLE_PARAMETER['dut1']
+            + self.parameters.EXAMPLE_PARAMETER['dut1']
         )
 
-    def post_test(self, instruments, dut, parameters):
+    def post_test(self):
         pass
