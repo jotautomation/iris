@@ -15,9 +15,6 @@ class FlowControl(Enum):
     """Stop if result was fail"""
     STOP_ON_FAIL = 1
 
-    """Stop always"""
-    STOP = 2
-
     """Continue always"""
     CONTINUE = 3
 
@@ -25,7 +22,8 @@ class FlowControl(Enum):
 class TestCase(ABC):
     """Base for all test cases"""
 
-    def __init__(self, limits, report_progress, dut, instruments, parameters):
+    def __init__(self, limits, report_progress, dut, instruments, parameters, flow_control):
+        self.flow_control = flow_control
         self.parameters = parameters
         self.instruments = instruments
         self.dut = dut
@@ -33,7 +31,6 @@ class TestCase(ABC):
         self.limits = limits
         self.results = {}
         self.logger = logging.getLogger('test_case')
-        self.flow_control = FlowControl.STOP_ON_FAIL
         self.start_time = None
         self.start_time_monotonic = None
         self.duration_s = None
@@ -67,6 +64,10 @@ class TestCase(ABC):
         """Adds new result to result array"""
         self.dut.measurements[self.__class__.__name__][name] = result
 
+    def stop_testing(self):
+        """Stops testing before going to next test step"""
+        self.test_position.stop_testing = True
+
     def result_handler(self, error=None):
         """Checks if test is pass or fail. Can be overridden if needed."""
 
@@ -85,6 +86,9 @@ class TestCase(ABC):
                 if not pass_fail_result:
                     self.dut.pass_fail_result = False
                     self.dut.failed_steps.append(self.name)
+                    if self.flow_control == FlowControl.STOP_ON_FAIL:
+                        self.stop_testing()
+
         else:
             tmp_result['no_limit_defined'] = {"limit": None, "measurement": None, "result": True}
 

@@ -7,6 +7,7 @@ class TestPosition:
         self.test_status = None
         self.test_case_instances = {}
         self.dut = None
+        self.stop_testing = False
 
     def prepare_for_new_test_run(self):
         self.step = None

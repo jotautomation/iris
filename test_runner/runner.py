@@ -184,7 +184,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
                     # Set sn to be none, if you don't want to run any test_case_names for the test position
                     # but want to keep showing the position on the UI
-                    if not test_position_instance.dut:
+                    if not test_position_instance.dut or test_position_instance.stop_testing:
                         continue
 
                     # Fill DUT data
@@ -203,6 +203,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                                 the_position_instance.dut,
                                 common_definitions.INSTRUMENTS,
                                 test_definitions.PARAMETERS,
+                                common_definitions.FLOW_CONTROL
                             )
                         elif hasattr(test_pool, the_case):
                             test_instance = getattr(test_pool, the_case)(
@@ -211,6 +212,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                                 the_position_instance.dut,
                                 common_definitions.INSTRUMENTS,
                                 test_definitions.PARAMETERS,
+                                common_definitions.FLOW_CONTROL
                             )
                         else:
                             raise exceptions.TestCaseNotFound(
