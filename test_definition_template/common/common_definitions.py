@@ -20,9 +20,7 @@ FLOW_CONTROL = FlowControl.CONTINUE
 SN_FROM_UI = False
 
 # List of test sequences' directory names
-TEST_SEQUENCES = os.listdir('test_definitions')
-if 'common' in TEST_SEQUENCES:
-    TEST_SEQUENCES.remove('common')
+TEST_SEQUENCES = os.listdir('test_definitions/sequences')
 
 
 def parse_dut_info(info, test_position):
