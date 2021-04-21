@@ -102,13 +102,13 @@ LOGGER.debug("Logging initialized")
 
 if ARGS.create:
 
-    from test_definition_template import example_sequence
+    from test_definition_template.sequences import example_sequence
     from test_definition_template import test_case_pool
 
-    TEST_DEF_PATH = os.path.join("./test_definitions", ARGS.create[0])
+    TEST_DEF_PATH = os.path.join("./test_definitions/sequences", ARGS.create[0])
 
     if os.path.isdir(TEST_DEF_PATH):
-        print("test_definitions folder already exists")
+        print("Test sequence " + ARGS.create[0] + " already exists")
         sys.exit(-1)
 
     copy_tree(example_sequence.__path__[0], TEST_DEF_PATH)

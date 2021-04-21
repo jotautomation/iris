@@ -38,4 +38,4 @@ def get_test_definitions(sequence_name):
         + ". Remember, you can create new definition template with --create argument."
     )
 
-    return import_by_name(sequence_name, err)
+    return import_by_name("sequences." + sequence_name, err)
