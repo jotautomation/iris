@@ -39,6 +39,13 @@ PARSER.add_argument(
     action="store_true",
 )
 
+PARSER.add_argument(
+    "-d",
+    "--dry-run",
+    help="Doesn't connect to the actual instruments, but creates mock objects instead.",
+    action="store_true",
+)
+
 
 PARSER.add_argument(
     "-v",
@@ -143,6 +150,9 @@ if ARGS.list_applications:
     sys.exit()
 
 CONTROL['run'].set()
+
+if ARGS.dry_run:
+    CONTROL['dry_run'] = True
 
 if ARGS.single_run:
     CONTROL['single_run'] = True

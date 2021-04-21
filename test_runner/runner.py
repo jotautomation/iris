@@ -29,6 +29,7 @@ def get_test_control():
         'run': threading.Event(),
         'get_sn_from_ui': get_common_definitions().SN_FROM_UI,
         'test_sequences': get_common_definitions().TEST_SEQUENCES,
+        'dry_run': False,
     }
 
 
@@ -107,8 +108,13 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
     report_progress("Boot")
 
-    # Initialize all instruments
-    common_definitions.instrument_initialization()
+    if test_control['dry_run']:
+        import mock
+        for instument in common_definitions.INSTRUMENTS.keys():
+            common_definitions.INSTRUMENTS[instument] = mock.Mock()
+    else:
+        # Initialize all instruments
+        common_definitions.instrument_initialization()
 
     # Execute boot_up defined for the test sequence
     common_definitions.boot_up()

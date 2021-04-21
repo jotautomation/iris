@@ -53,7 +53,7 @@ get_ui()
 
 setup(
     name="jot-iris",
-    version="0.14.8",
+    version="1.1.0",
     license="MIT License",
     author="JOT Automation Ltd.",
     author_email="rami.rahikkala@jotautomation.com",
@@ -78,6 +78,7 @@ setup(
         "PyYAML",
         "coloredlogs",
         "colorama",
+        "mock"
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
