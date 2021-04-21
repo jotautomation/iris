@@ -17,7 +17,7 @@ TEST_POSITIONS = [
 FLOW_CONTROL = FlowControl.CONTINUE
 
 # Wait DUT serial number from UI
-SN_FROM_UI = True
+SN_FROM_UI = False
 
 # List of test sequences' directory names
 TEST_SEQUENCES = os.listdir('test_definitions')
