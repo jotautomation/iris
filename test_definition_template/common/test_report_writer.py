@@ -7,12 +7,17 @@ import pathlib
 import json2html
 
 
-def create_report(report_json, report_dict, duts, parameters):
+def create_report(report_json, report_dict, test_positions, parameters):
     """Creates and stores report for DUT(s)"""
 
     current = datetime.datetime.now()
 
-    filename = '_'.join(['%s-%s' % (key, value) for (key, value) in duts.items()])
+    filename = '_'.join(
+        [
+            '%s-%s' % (test_position_name, test_position_value.dut.serial_number)
+            for (test_position_name, test_position_value) in test_positions.items()
+        ]
+    )
 
     report_path = (
         pathlib.Path.cwd() / 'results' / str(current.year) / str(current.month) / str(current.day)

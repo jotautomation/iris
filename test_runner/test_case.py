@@ -60,9 +60,9 @@ class TestCase(ABC):
     def clean_fail(self):
         """Called after all steps are done if pass_fail_result is not True"""
 
-    def new_measurement(self, name, result):
-        """Adds new result to result array"""
-        self.dut.measurements[self.__class__.__name__][name] = result
+    def new_measurement(self, name, measurement):
+        """Adds new measurement to measurement array"""
+        self.dut.measurements[self.__class__.__name__][name] = measurement
 
     def stop_testing(self):
         """Stops testing before going to next test step"""
@@ -76,21 +76,51 @@ class TestCase(ABC):
         if error:
             tmp_result['Error'] = {"limit": None, "measurement": error, "result": False}
         elif self.limits:
-            for result in self.dut.measurements[self.name].items():
-                pass_fail_result = self.limits[self.name][result[0]](result[1])
-                tmp_result[result[0]] = {
-                    "limit": inspect.getsource(self.limits[self.name][result[0]]),
-                    "measurement": result[1],
-                    "result": pass_fail_result,
-                }
-                if not pass_fail_result:
-                    self.dut.pass_fail_result = False
-                    self.dut.failed_steps.append(self.name)
-                    if self.flow_control == FlowControl.STOP_ON_FAIL:
-                        self.stop_testing()
+
+            for measurement in self.dut.measurements[self.name].items():
+                try:
+                    limit = ''
+                    measurement_value = None
+                    measurement_name = measurement[0]
+                    measurement_value = measurement[1]
+
+                    limit = self.limits[self.name][measurement_name].get(
+                        'report_limit',
+                        inspect.getsource(self.limits[self.name][measurement_name]['limit']),
+                    )
+
+                    pass_fail_result = self.limits[self.name][measurement_name]['limit'](
+                        measurement_value
+                    )
+
+                    tmp_result[measurement_name] = {
+                        "unit": self.limits[self.name][measurement_name].get('unit', ''),
+                        "limit": limit,
+                        "measurement": measurement_value,
+                        "result": pass_fail_result,
+                    }
+
+                except Exception as exp:
+                    tmp_result[measurement_name] = {
+                        "unit": '',
+                        "limit": limit,
+                        "measurement": measurement_value,
+                        "result": "ErrorOnLimits",
+                        "error": exp,
+                    }
+                finally:
+                    if not pass_fail_result:
+                        self.dut.pass_fail_result = False
+                        self.dut.failed_steps.append(self.name)
+                        if self.flow_control == FlowControl.STOP_ON_FAIL:
+                            self.stop_testing()
 
         else:
-            tmp_result['no_limit_defined'] = {"limit": None, "measurement": None, "result": True}
+            tmp_result['no_limit_defined'] = {
+                "limit": None,
+                "measurement": None,
+                "measurement": True,
+            }
 
         return tmp_result
 
@@ -121,8 +151,9 @@ class TestCase(ABC):
         self.duration_s = time.monotonic() - self.start_time_monotonic
 
     def handle_error(self, error):
-        self.dut.results.update(self.result_handler(error))
+        self.dut.results.setdefault(self.name, {}).update(self.result_handler(error))
         self.clean_error()
 
     def evaluate_results(self):
-        self.dut.results.update(self.result_handler())
+
+        self.dut.results.setdefault(self.name, {}).update(self.result_handler())
