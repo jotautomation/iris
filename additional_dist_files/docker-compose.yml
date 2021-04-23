@@ -1,0 +1,26 @@
+version: '3.7'
+services:
+  mongo:
+    image: mongo:latest
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: jotroot
+      MONGO_INITDB_ROOT_PASSWORD: YOURPASSWORDHERE
+      MONGO_INITDB_DATABASE: production_testing
+    ports:
+      - 27017:27017
+    volumes:
+      - mongodb_data_container:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: jotroot
+      ME_CONFIG_MONGODB_ADMINPASSWORD: YOURPASSWORDHERE
+
+volumes:
+  mongodb_data_container:

@@ -122,6 +122,7 @@ if ARGS.create:
         import additional_dist_files
         from shutil import copyfile
         copyfile(additional_dist_files.__path__[0] + '/Dockerfile', './Dockerfile')
+        copyfile(additional_dist_files.__path__[0] + '/docker-compose.yml', './docker-compose.yml')
     else:
         print('./test_definitions/common already exists. Not copying it.')
 
