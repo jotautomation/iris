@@ -150,6 +150,14 @@ class TestCase(ABC):
         self.end_time = datetime.datetime.now()
         self.duration_s = time.monotonic() - self.start_time_monotonic
 
+        self.dut.results.update(
+            {
+                "start_time": self.start_time,
+                "end_time": self.end_time,
+                "duration_s": round(self.duration_s, 2),
+            }
+        )
+
     def handle_error(self, error):
         self.dut.results.setdefault(self.name, {}).update(self.result_handler(error))
         self.clean_error()

@@ -321,7 +321,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
             results["start_time"] = datetime.datetime.now()
             results["end_time"] = datetime.datetime.now()
 
-            results["duration_s"] = time.monotonic() - start_time_monotonic
+            results["duration_s"] = round(time.monotonic() - start_time_monotonic, 2)
 
             results["overall_result"] = dut.pass_fail_result
 
