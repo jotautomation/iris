@@ -10,8 +10,6 @@ import json2html
 def create_report(report_json, report_dict, test_positions, parameters):
     """Creates and stores report for DUT(s)"""
 
-    current = datetime.datetime.now()
-
     filename = '_'.join(
         [
             '%s-%s' % (test_position_name, test_position_value.dut.serial_number)
@@ -19,11 +17,19 @@ def create_report(report_json, report_dict, test_positions, parameters):
         ]
     )
 
+    report_path = create_report_path()
+
+    report_file_path = report_path / (filename + '.html')
+
+    report_file_path.write_text(json2html.json2html.convert(json=report_json))
+
+
+def create_report_path():
+    current = datetime.datetime.now()
+
     report_path = (
         pathlib.Path.cwd() / 'results' / str(current.year) / str(current.month) / str(current.day)
     )
     report_path.mkdir(parents=True, exist_ok=True)
 
-    report_file_path = report_path / (filename + '.html')
-
-    report_file_path.write_text(json2html.json2html.convert(json=report_json))
+    return report_path

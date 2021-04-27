@@ -78,7 +78,8 @@ setup(
         "PyYAML",
         "coloredlogs",
         "colorama",
-        "mock"
+        "mock",
+        "pymongo",
     ],
     classifiers=[
         "Programming Language :: Python :: 3",

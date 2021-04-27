@@ -5,6 +5,7 @@ import json
 import threading
 from test_runner import helpers
 from test_runner import exceptions
+from pymongo import MongoClient
 
 
 def get_common_definitions():
@@ -116,10 +117,13 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
         # Initialize all instruments
         common_definitions.instrument_initialization()
 
+    db_client = None
+    if common_definitions.LOCAL_MONGODB_CONNECTION:
+        db_client = MongoClient(common_definitions.LOCAL_MONGODB_CONNECTION)
+
     # Execute boot_up defined for the test sequence
     common_definitions.boot_up()
 
-    last_dut_status = {}
     test_positions = {}
     fail_reason_history = ''
     fail_reason_count = 0
@@ -178,6 +182,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
             # Remove skipped test_case_names from test list
             test_case_names = [t for t in test_definitions.TESTS if t not in test_definitions.SKIP]
 
+            start_time_epoch = time.time()
             start_time = datetime.datetime.now()
             start_time_monotonic = time.monotonic()
 
@@ -207,18 +212,18 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                                 test_definitions.LIMITS,
                                 report_progress,
                                 the_position_instance.dut,
-                                common_definitions.INSTRUMENTS,
                                 test_definitions.PARAMETERS,
-                                common_definitions.FLOW_CONTROL
+                                db_client,
+                                common_definitions
                             )
                         elif hasattr(test_pool, the_case):
                             test_instance = getattr(test_pool, the_case)(
                                 test_definitions.LIMITS,
                                 report_progress,
                                 the_position_instance.dut,
-                                common_definitions.INSTRUMENTS,
                                 test_definitions.PARAMETERS,
-                                common_definitions.FLOW_CONTROL
+                                db_client,
+                                common_definitions
                             )
                         else:
                             raise exceptions.TestCaseNotFound(
@@ -234,6 +239,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
                     test_instance = test_position_instance.test_case_instances[test_case_name]
                     test_instance.test_position = test_position_instance
+                    test_instance.test_run_id = str(start_time_epoch).replace('.', '_')
 
                     try:
                         if '_pre' in test_case_name:
@@ -318,7 +324,8 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                 dut.pass_fail_result, test_positions, common_definitions.INSTRUMENTS
             )
 
-            results["start_time"] = datetime.datetime.now()
+            results["start_time"] = start_time
+            results["start_time_epoch"] = start_time_epoch
             results["end_time"] = datetime.datetime.now()
 
             results["duration_s"] = round(time.monotonic() - start_time_monotonic, 2)

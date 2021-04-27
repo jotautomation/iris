@@ -1,5 +1,4 @@
 """Base for all test cases"""
-
 from abc import ABC, abstractmethod
 import inspect
 import logging
@@ -7,6 +6,8 @@ import datetime
 import time
 
 from enum import Enum
+from pymongo import MongoClient
+from pathlib import Path
 
 
 class FlowControl(Enum):
@@ -22,10 +23,12 @@ class FlowControl(Enum):
 class TestCase(ABC):
     """Base for all test cases"""
 
-    def __init__(self, limits, report_progress, dut, instruments, parameters, flow_control):
-        self.flow_control = flow_control
+    def __init__(
+        self, limits, report_progress, dut, parameters, local_mongodb, common_definitions
+    ):
+        self.flow_control = common_definitions.FLOW_CONTROL
         self.parameters = parameters
-        self.instruments = instruments
+        self.instruments = common_definitions.INSTRUMENTS
         self.dut = dut
         self.report_progress = report_progress
         self.limits = limits
@@ -37,6 +40,8 @@ class TestCase(ABC):
         self.end_time = None
         self.test_position = None
         self.name = self.__class__.__name__
+        self.local_mongodb = local_mongodb
+        self.local_mongodb_name = common_definitions.LOCAL_MONGODB_DB_NAME
         # Initialize measurement dictionary
         self.dut.measurements[self.name] = {}
 
@@ -165,3 +170,29 @@ class TestCase(ABC):
     def evaluate_results(self):
 
         self.dut.results.setdefault(self.name, {}).update(self.result_handler())
+
+    def store_test_data_file(self, source_file_path, dest_name, **kwargs):
+        from common.test_report_writer import create_report_path
+
+        dest_name = (
+            self.name + '_' + self.dut.serial_number + '_' + self.test_run_id + '_' + dest_name
+        )
+
+        report_path = create_report_path()
+        dest_path = Path(report_path, 'file_attachments')
+        dest_path.mkdir(parents=True, exist_ok=True)
+        Path(source_file_path).rename(dest_path / dest_name)
+        self._store_test_data_file_to_db(dest_path, **kwargs)
+
+    def _store_test_data_file_to_db(self, file_path, **kwargs):
+        if self.local_mongodb:
+            self.local_mongodb[self.local_mongodb_name].file_attachments.insert_one(
+                {
+                    'file_path': str(file_path),
+                    'testRunId': self.test_run_id,
+                    'testCase': self.name,
+                    'dut': self.dut.serial_number,
+                    'added': datetime.datetime.now(),
+                    **kwargs,
+                }
+            )

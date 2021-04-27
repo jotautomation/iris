@@ -11,6 +11,10 @@ TEST_POSITIONS = [
     TestPosition('3', 'right'),
 ]
 
+LOCAL_MONGODB_CONNECTION = 'mongodb://JOTUser:YOURPASSWORDHERE@localhost:27017/production_testing'
+LOCAL_MONGODB_DB_NAME = 'production_testing'
+
+
 # FlowControl.CONTINUE keeps testing even some test fails
 # FlowControl.STOP_ON_FAIL stops on first fail
 

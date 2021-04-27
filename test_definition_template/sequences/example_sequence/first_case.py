@@ -10,10 +10,22 @@ class First(TestCase):
 
     def test(self):
         print("At first test case")
+        with open('test_data.txt') as test_data_file:
+            test_data_file.write("Sample data inside the file")
+
+        self.store_test_data_file(
+            'test_data.txt',
+            'Measurement1_data',
+            any_additional_data="Is added as parameter",
+            one_more_parameter="sample parameter",
+        )
+
         self.new_measurement("Measurement1", 123)
         # instruments["G5"].do_something_with_instrument()
         self.new_measurement("Measurement2", [123, 456, 1, 3])
+
         import time
+
         time.sleep(2)
 
     def post_test(self):
