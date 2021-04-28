@@ -181,7 +181,8 @@ class TestCase(ABC):
         report_path = create_report_path()
         dest_path = Path(report_path, 'file_attachments')
         dest_path.mkdir(parents=True, exist_ok=True)
-        Path(source_file_path).rename(dest_path / dest_name)
+        dest_path = dest_path / dest_name
+        Path(source_file_path).rename(dest_path)
         self._store_test_data_file_to_db(dest_path, **kwargs)
 
     def _store_test_data_file_to_db(self, file_path, **kwargs):
