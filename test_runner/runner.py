@@ -111,6 +111,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
     if test_control['dry_run']:
         from unittest.mock import MagicMock
+
         for instument in common_definitions.INSTRUMENTS.keys():
             common_definitions.INSTRUMENTS[instument] = MagicMock()
     else:
@@ -187,10 +188,17 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
             start_time_epoch = time.time()
             start_time = datetime.datetime.now()
             start_time_monotonic = time.monotonic()
+            test_run_id = str(start_time_epoch).replace('.', '_')
 
             # Run all test cases
             for test_case_name in test_case_names:
                 # Loop for testing
+
+                is_pre_test = False
+                if '_pre' in test_case_name:
+                    is_pre_test = True
+
+                test_case_name = test_case_name.replace('_pre', '').replace('_pre', '')
 
                 # Run test cases for each DUT in test position
                 for test_position_name, test_position_instance in test_positions.items():
@@ -206,12 +214,6 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
                     report_progress('testing', test_positions, sequence_name=sequence_name)
 
-                    is_pre_test = False
-                    if '_pre' in test_case_name:
-                        is_pre_test = True
-
-                    test_case_name = test_case_name.replace('_pre', '').replace('_pre', '')
-
                     def new_test_instance(the_case, the_position_instance):
                         if hasattr(test_definitions, the_case):
                             test_instance = getattr(test_definitions, the_case)(
@@ -220,7 +222,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                                 the_position_instance.dut,
                                 test_definitions.PARAMETERS,
                                 db_client,
-                                common_definitions
+                                common_definitions,
                             )
                         elif hasattr(test_pool, the_case):
                             test_instance = getattr(test_pool, the_case)(
@@ -229,7 +231,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                                 the_position_instance.dut,
                                 test_definitions.PARAMETERS,
                                 db_client,
-                                common_definitions
+                                common_definitions,
                             )
                         else:
                             raise exceptions.TestCaseNotFound(
@@ -245,8 +247,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
                     test_instance = test_position_instance.test_case_instances[test_case_name]
                     test_instance.test_position = test_position_instance
-                    test_instance.test_run_id = str(start_time_epoch).replace('.', '_')
-
+                    test_instance.test_run_id = test_run_id
                     try:
                         if is_pre_test:
                             # Start pre task and store it to dictionary
@@ -260,7 +261,10 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                             background_pre_tasks[test_case_name][test_position_name].start()
                         else:
                             # Wait for pre task
-                            if test_case_name in background_pre_tasks:
+                            if (
+                                test_case_name in background_pre_tasks
+                                and test_position_name in background_pre_tasks[test_case_name]
+                            ):
                                 background_pre_tasks[test_case_name][test_position_name].join()
                             else:
                                 # Or if pre task is not run, run it now
@@ -333,10 +337,9 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
             results["start_time"] = start_time
             results["start_time_epoch"] = start_time_epoch
             results["end_time"] = datetime.datetime.now()
+            results["test_run_id"] = test_run_id
 
             results["duration_s"] = round(time.monotonic() - start_time_monotonic, 2)
-
-            results["overall_result"] = dut.pass_fail_result
 
         except exceptions.IrisError as e:
             # TODO: write error to report
@@ -358,6 +361,8 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                 results,
                 test_positions,
                 test_definitions.PARAMETERS,
+                db_client,
+                common_definitions,
             )
 
         if test_control['single_run']:

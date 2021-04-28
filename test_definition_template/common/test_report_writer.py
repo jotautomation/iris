@@ -7,8 +7,34 @@ import pathlib
 import json2html
 
 
-def create_report(report_json, report_dict, test_positions, parameters):
+def create_report(
+    report_json, report_dict, test_positions, parameters, local_db, common_definitions
+):
     """Creates and stores report for DUT(s)"""
+
+    # Get root level items on report
+    root_items = {}
+
+    for key, value in report_dict.items():
+        if not isinstance(value, dict):
+            root_items[key] = value
+
+    # Extract each DUT and add to database
+    for key, value in test_positions.items():
+        if value.dut is not None:
+            dut_sn = value.dut.serial_number
+
+            result_db = {'serialnumber': dut_sn}
+
+            result_db['overallResult'] = value.dut.pass_fail_result
+
+            # The actual results
+            result_db.update(report_dict[dut_sn])
+
+            # Add also root level items
+            result_db.update(root_items)
+
+            local_db[common_definitions.LOCAL_MONGODB_DB_NAME].test_reports.insert_one(result_db)
 
     filename = '_'.join(
         [

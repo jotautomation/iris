@@ -11,7 +11,15 @@ def clean_db(db_client, local_mongodb_name):
 
     # Delete files on HDD
     for _file in old_files:
-        pathlib.Path(_file['file_path']).unlink()
+        try:
+            pathlib.Path(_file['file_path']).unlink()
+        except FileNotFoundError as err:
+            print("Trying to delete non-existent file attachment: " + _file['file_path'])
 
     # Delete file entries on database
     db_client[local_mongodb_name].file_attachments.delete_many(file_delete_filter)
+
+    # Delete old test reports
+    db_client[local_mongodb_name].test_reports.delete_many(
+        {'start_time': {'$lt': datetime.datetime.now() - datetime.timedelta(weeks=4)}}
+    )

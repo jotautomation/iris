@@ -155,7 +155,7 @@ class TestCase(ABC):
         self.end_time = datetime.datetime.now()
         self.duration_s = time.monotonic() - self.start_time_monotonic
 
-        self.dut.results.update(
+        self.dut.results[self.name].update(
             {
                 "start_time": self.start_time,
                 "end_time": self.end_time,
