@@ -204,6 +204,10 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
                     report_progress('testing', test_positions, sequence_name=sequence_name)
 
+                    is_pre_test = False
+                    if '_pre' in test_case_name:
+                        is_pre_test = True
+
                     test_case_name = test_case_name.replace('_pre', '').replace('_pre', '')
 
                     def new_test_instance(the_case, the_position_instance):
@@ -242,7 +246,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                     test_instance.test_run_id = str(start_time_epoch).replace('.', '_')
 
                     try:
-                        if '_pre' in test_case_name:
+                        if is_pre_test:
                             # Start pre task and store it to dictionary
 
                             if test_case_name not in background_pre_tasks:
