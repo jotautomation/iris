@@ -139,6 +139,8 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
             report_progress("Prepare", test_positions)
 
+            common_definitions.clean_db(db_client, common_definitions.LOCAL_MONGODB_DB_NAME)
+
             # Create TestPosition instances
             for position in common_definitions.TEST_POSITIONS:
                 test_positions[position.name] = position
