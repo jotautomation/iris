@@ -76,7 +76,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
         if message:
             message_queue.put(message)
 
-    _yield = 100
+    statistics = None
 
     def report_progress(
         general_step, test_positions=None, overall_result=None, sequence_name=None
@@ -104,7 +104,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
         if overall_result:
             progress_json['overall_result'] = overall_result
 
-        progress_json['yield'] = _yield
+        progress_json['statistics'] = statistics
 
         test_control['progress'] = progress_json
         progess_queue.put(json.dumps(progress_json, default=str))
@@ -145,7 +145,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
             report_progress("Prepare", test_positions)
 
             common_definitions.clean_db(db_client, common_definitions.LOCAL_MONGODB_DB_NAME)
-            _yield = common_definitions.get_yield(db_client, common_definitions.LOCAL_MONGODB_DB_NAME)
+            statistics = common_definitions.get_statistics(db_client, common_definitions.LOCAL_MONGODB_DB_NAME)
 
             # Create TestPosition instances
             for position in common_definitions.TEST_POSITIONS:
