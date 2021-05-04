@@ -8,9 +8,17 @@ import json2html
 
 
 def create_report(
-    report_json, report_dict, test_positions, parameters, local_db, common_definitions
+    report_json,
+    report_dict,
+    test_positions,
+    parameters,
+    local_db,
+    common_definitions,
+    progress_reporter,
 ):
     """Creates and stores report for DUT(s)"""
+
+    progress_reporter.show_operator_instructions("Put DUT to yellow box!")
 
     # Get root level items on report
     root_items = {}

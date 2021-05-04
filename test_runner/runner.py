@@ -3,6 +3,7 @@ import datetime
 import time
 import json
 import threading
+from test_runner import progress_reporter
 from test_runner import helpers
 from test_runner import exceptions
 from pymongo import MongoClient
@@ -78,40 +79,11 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
 
     statistics = None
 
-    def report_progress(
-        general_step, test_positions=None, overall_result=None, sequence_name=None
-    ):
-        if test_positions:
-            positions_dict = {}
-            for position_name, position_value in test_positions.items():
-                positions_dict[position_name] = {
-                    'step': position_value.step,
-                    'status': position_value.status,
-                    'sn': None if position_value.dut is None else position_value.dut.serial_number,
-                    'test_status': str(position_value.test_status),
-                }
-
-            test_positions = positions_dict
-
-        progress_json = {
-            "general_state": general_step,
-            "duts": test_positions,
-            "sequence_name": sequence_name,
-            "get_sn_from_ui": test_control['get_sn_from_ui'],
-            "test_sequences": test_control['test_sequences'],
-        }
-
-        if overall_result:
-            progress_json['overall_result'] = overall_result
-
-        progress_json['statistics'] = statistics
-
-        test_control['progress'] = progress_json
-        progess_queue.put(json.dumps(progress_json, default=str))
-
     common_definitions = get_common_definitions()
 
-    report_progress("Boot")
+    progress = progress_reporter.ProgressReporter(test_control, progess_queue)
+
+    progress.set_progress(general_state="Boot")
 
     if test_control['dry_run']:
         from unittest.mock import MagicMock
@@ -142,10 +114,16 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
             background_pre_tasks = {}
             background_post_tasks = {}
 
-            report_progress("Prepare", test_positions)
+            progress.set_progress(
+                general_state="Prepare", overall_result=None, test_positions=test_positions
+            )
 
             common_definitions.clean_db(db_client, common_definitions.LOCAL_MONGODB_DB_NAME)
-            statistics = common_definitions.get_statistics(db_client, common_definitions.LOCAL_MONGODB_DB_NAME)
+            progress.set_progress(
+                statistics=common_definitions.get_statistics(
+                    db_client, common_definitions.LOCAL_MONGODB_DB_NAME
+                )
+            )
 
             # Create TestPosition instances
             for position in common_definitions.TEST_POSITIONS:
@@ -155,7 +133,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
             for position_name, position in test_positions.items():
                 position.prepare_for_new_test_run()
 
-                report_progress("Prepare", test_positions=test_positions)
+                progress.set_progress(general_state="Prepare", test_positions=test_positions)
 
             # DUT sn may come from UI
             if test_control['get_sn_from_ui']:
@@ -217,13 +195,17 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                     test_position_instance.step = test_case_name
                     test_position_instance.status = 'testing'
 
-                    report_progress('testing', test_positions, sequence_name=sequence_name)
+                    progress.set_progress(
+                        general_state='testing',
+                        test_positions=test_positions,
+                        sequence_name=sequence_name,
+                    )
 
                     def new_test_instance(the_case, the_position_instance):
                         if hasattr(test_definitions, the_case):
                             test_instance = getattr(test_definitions, the_case)(
                                 test_definitions.LIMITS,
-                                report_progress,
+                                progress,
                                 the_position_instance.dut,
                                 test_definitions.PARAMETERS,
                                 db_client,
@@ -232,7 +214,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                         elif hasattr(test_pool, the_case):
                             test_instance = getattr(test_pool, the_case)(
                                 test_definitions.LIMITS,
-                                report_progress,
+                                progress,
                                 the_position_instance.dut,
                                 test_definitions.PARAMETERS,
                                 db_client,
@@ -276,11 +258,19 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                                 test_instance.run_pre_test()
 
                             test_position_instance.test_status = "Testing"
-                            report_progress('testing', test_positions, sequence_name=sequence_name)
+                            progress.set_progress(
+                                general_state='testing',
+                                test_position=test_positions,
+                                sequence_name=sequence_name,
+                            )
                             # Run the actual test case
                             test_instance.run_test()
 
-                            report_progress('testing', test_positions, sequence_name=sequence_name)
+                            progress.set_progress(
+                                general_state='testing',
+                                test_positions=test_positions,
+                                sequence_name=sequence_name,
+                            )
                             test_position_instance.test_status = "Idle"
 
                             # Start post task and store it to dictionary
@@ -300,7 +290,11 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                         test_position_instance.status = 'idle'
                         test_position_instance.step = None
 
-                        report_progress('testing', test_positions, sequence_name=sequence_name)
+                        progress.set_progress(
+                            general_state='testing',
+                            test_positions=test_positions,
+                            sequence_name=sequence_name,
+                        )
 
             for test_position_name, test_position_instance in test_positions.items():
 
@@ -329,9 +323,9 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
             if fail_reason_count > 4 and pass_count < 5:
                 send_message(f"WARNING: 5 or more consecutive fails on {fail_reason_history}")
 
-            report_progress(
-                'finalize',
-                test_positions,
+            progress.set_progress(
+                general_state='finalize',
+                test_positions=test_positions,
                 overall_result=dut.pass_fail_result,
                 sequence_name=sequence_name,
             )
@@ -354,9 +348,9 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
             pass
         finally:
             pass
-        report_progress(
-            "Create test report",
-            test_positions,
+        progress.set_progress(
+            general_state="Create test report",
+            test_positions=test_positions,
             overall_result=dut.pass_fail_result,
             sequence_name=sequence_name,
         )
@@ -368,13 +362,12 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                 test_definitions.PARAMETERS,
                 db_client,
                 common_definitions,
+                progress
             )
 
         if test_control['single_run']:
             test_control['terminate'] = True
 
-    report_progress("Shutdown")
+    progress.set_progress(general_state="Shutdown")
 
     common_definitions.shutdown(common_definitions.INSTRUMENTS)
-
-    report_progress("Shutdown")

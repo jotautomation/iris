@@ -45,6 +45,9 @@ class TestCase(ABC):
         # Initialize measurement dictionary
         self.dut.measurements[self.name] = {}
 
+    def show_operator_instructions(self, message, append=False):
+        self.report_progress.show_operator_instructions(message, append)
+
     @abstractmethod
     def test(self):
         """Defines the test case."""

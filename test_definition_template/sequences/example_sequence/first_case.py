@@ -10,6 +10,7 @@ class First(TestCase):
 
     def test(self):
         print("At first test case")
+        self.show_operator_instructions("Ínstructions for the operator")
         with open('test_data.txt', 'w') as test_data_file:
             test_data_file.write("Sample data inside the file")
 
