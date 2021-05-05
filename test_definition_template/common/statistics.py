@@ -28,6 +28,9 @@ def get_yield(db_client, local_mongodb_name):
         .count()
     )
 
+    if all_count == 0:
+        return 0
+
     return pass_count / all_count * 100
 
 
