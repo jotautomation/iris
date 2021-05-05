@@ -139,6 +139,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
             if test_control['get_sn_from_ui']:
 
                 dut_sn_values, sequence_name = get_sn_from_ui(dut_sn_queue)
+                common_definitions.prepare_test(common_definitions.INSTRUMENTS)
 
             else:
                 # Or from prepare_test function
@@ -154,8 +155,6 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                     test_positions[test_position].dut = common_definitions.parse_dut_info(
                         dut_info, test_position
                     )
-
-            common_definitions.prepare_test(common_definitions.INSTRUMENTS)
 
             results = {}
 
