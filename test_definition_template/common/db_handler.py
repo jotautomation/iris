@@ -53,9 +53,7 @@ class DatabaseHandler:
         file_delete_filter = {
             'added': {'$lt': datetime.datetime.now() - datetime.timedelta(weeks=1)}
         }
-        old_files = self.db_client[self.db_name].file_attachments.find(
-            file_delete_filter
-        )
+        old_files = self.db_client[self.db_name].file_attachments.find(file_delete_filter)
 
         # Delete files on HDD
         for _file in old_files:
@@ -71,3 +69,9 @@ class DatabaseHandler:
         self.db_client[self.db_name].test_reports.delete_many(
             {'start_time': {'$lt': datetime.datetime.now() - datetime.timedelta(weeks=4)}}
         )
+
+    def search_db(self, search_args):
+
+        reps = list(self.db_client[self.db_name].test_reports.find({}))
+
+        return {'test_runs': reps}

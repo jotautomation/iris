@@ -1,6 +1,7 @@
 """HTTP listener to enable REST API and serving web UI"""
 
 import logging
+import json
 import os
 import asyncio
 import tornado.web
@@ -14,13 +15,14 @@ RESP_CONTENT_TYPE = 'application/vnd.siren+json; charset=UTF-8'
 class IrisRequestHandler(tornado.web.RequestHandler):
     """Base class for REST API calls"""
 
-    def initialize(self, test_control, test_definitions, **kwargs):
+    def initialize(self, test_control, test_definitions, listener_args, **kwargs):
         """Initialize is called when tornado.web.Application is created"""
         self.logger = logging.getLogger(self.__class__.__name__)  # pylint: disable=W0201
         # Disable tornado access logging by default
         logging.getLogger('tornado.access').disabled = True
         self.test_control = test_control  # pylint: disable=W0201
         self.test_definitions = test_definitions  # pylint: disable=W0201
+        self.listener_args = listener_args  # pylint: disable=W0201
         self.set_header("Access-Control-Allow-Origin", "*")
         self.set_header("Access-Control-Allow-Headers", "x-requested-with, Content-Type")
         self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
@@ -154,11 +156,26 @@ class HistorySearchItems(IrisRequestHandler):
                 },
             ]
         }
-class ReportsHandler(IrisRequestHandler):
+
+
+class IrisEncoder(json.JSONEncoder):
+    '''Encode json properly'''
+    def default(self, obj):
+
+        try:
+            return json.JSONEncoder.default(self, obj)
+        except Exception as e:
+            return str(obj)
+
+
+class SearchHistoryHandler(IrisRequestHandler):
     """Handles starting of tests, returns status of tests etc."""
 
     def handle_post(self, json_args, host, user, *args):  # pylint: disable=W0613
         """Handles post to /api/test_control"""
+
+        return json.dumps(self.listener_args['database'].search_db(json_args), cls=IrisEncoder)
+
 
 class DutsHandler(IrisRequestHandler):
     """Handles starting of tests, returns status of tests etc."""
@@ -270,7 +287,7 @@ def create_listener(
     progress_handlers,
     test_definitions,
     return_message_handler,
-    database,
+    listener_args,
 ):
     """Setup and create listener"""
     import ui
@@ -281,7 +298,7 @@ def create_listener(
     init = {
         'test_control': test_control,
         'test_definitions': test_definitions,
-        'database': database,
+        'listener_args': listener_args,
     }
 
     app = tornado.web.Application(
@@ -304,7 +321,7 @@ def create_listener(
             (r"/api", ApiRootHandler, init),
             (r"/api/duts", DutsHandler, init),
             (r"/api/history/search_bar_items", HistorySearchItems, init),
-            (r"/api/history", ReportsHandler, init),
+            (r"/api/history/search", SearchHistoryHandler, init),
             (r"/api/progress", ProgressHandler, init),
             (
                 r"/api/latest_result/(.*)",

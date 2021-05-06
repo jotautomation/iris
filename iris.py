@@ -121,6 +121,7 @@ if ARGS.create:
 
         import additional_dist_files
         from shutil import copyfile
+
         copyfile(additional_dist_files.__path__[0] + '/Dockerfile', './Dockerfile')
         copyfile(additional_dist_files.__path__[0] + '/docker-compose.yml', './docker-compose.yml')
     else:
@@ -164,11 +165,11 @@ if ARGS.report_off:
 DUT_SN_QUEUE = Queue()
 MESSAGE_QUEUE = Queue()
 PROGRESS_QUEUE = Queue()
-DATABASE = None
+LISTENER_ARGS = {'database': None}
 
 RUNNER_THREAD = threading.Thread(
     target=runner.run_test_runner,
-    args=(CONTROL, MESSAGE_QUEUE, PROGRESS_QUEUE, DUT_SN_QUEUE, DATABASE),
+    args=(CONTROL, MESSAGE_QUEUE, PROGRESS_QUEUE, DUT_SN_QUEUE, LISTENER_ARGS),
     name='test_runner_thread',
 )
 RUNNER_THREAD.daemon = True
@@ -206,7 +207,13 @@ if ARGS.listener:
         PORT = ARGS.port
 
     listener.create_listener(
-        PORT, CONTROL, MESSAGE_HANDLER, PROGRESS_HANDLER, COMMON_DEFINITIONS, DUT_SN_QUEUE, DATABASE
+        PORT,
+        CONTROL,
+        MESSAGE_HANDLER,
+        PROGRESS_HANDLER,
+        COMMON_DEFINITIONS,
+        DUT_SN_QUEUE,
+        LISTENER_ARGS,
     )
     tornado.ioloop.IOLoop.current().start()
 
