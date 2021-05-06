@@ -120,6 +120,7 @@ class TestRunnerHandler(IrisRequestHandler):
                 if key in self.test_control:
                     self.test_control[key] = value
 
+
 class HistorySearchItems(IrisRequestHandler):
     """Handles starting of tests, returns status of tests etc."""
 
@@ -127,11 +128,33 @@ class HistorySearchItems(IrisRequestHandler):
         """Returns running test handlers"""
         return {
             'searchBarItems': [
-                {'name': 'last_results_number', 'placeholder_txt': "Number of last items", 'label': 'Number of last results'},
-                {'name': 'last_results_hours', 'placeholder_txt': "Number of last items", 'label': 'Hours'},
-                {'name': 'dut_identifier', 'placeholder_txt': "ABCD-1234", 'label': 'DUT ID'},
+                {
+                    'name': 'last_results_number',
+                    'placeholder_txt': "Number of last items",
+                    'label': 'Number of last results',
+                    'type': 'textbox',
+                },
+                {
+                    'name': 'last_results_hours',
+                    'placeholder_txt': "Number of last items",
+                    'label': 'Hours',
+                    'type': 'textbox',
+                },
+                {
+                    'name': 'dut_identifier',
+                    'placeholder_txt': "ABCD-1234",
+                    'label': 'DUT ID',
+                    'type': 'textbox',
+                },
+                {
+                    'name': 'only_fails',
+                    'placeholder_txt': "",
+                    'label': 'Only Fails',
+                    'type': 'checkbox',
+                },
             ]
         }
+
 
 class DutsHandler(IrisRequestHandler):
     """Handles starting of tests, returns status of tests etc."""
