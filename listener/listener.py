@@ -154,7 +154,11 @@ class HistorySearchItems(IrisRequestHandler):
                 },
             ]
         }
+class ReportsHandler(IrisRequestHandler):
+    """Handles starting of tests, returns status of tests etc."""
 
+    def handle_post(self, json_args, host, user, *args):  # pylint: disable=W0613
+        """Handles post to /api/test_control"""
 
 class DutsHandler(IrisRequestHandler):
     """Handles starting of tests, returns status of tests etc."""
@@ -266,6 +270,7 @@ def create_listener(
     progress_handlers,
     test_definitions,
     return_message_handler,
+    database,
 ):
     """Setup and create listener"""
     import ui
@@ -273,7 +278,11 @@ def create_listener(
 
     ui_path = Path(ui.__path__[0], 'build')
 
-    init = {'test_control': test_control, 'test_definitions': test_definitions}
+    init = {
+        'test_control': test_control,
+        'test_definitions': test_definitions,
+        'database': database,
+    }
 
     app = tornado.web.Application(
         [
@@ -295,6 +304,7 @@ def create_listener(
             (r"/api", ApiRootHandler, init),
             (r"/api/duts", DutsHandler, init),
             (r"/api/history/search_bar_items", HistorySearchItems, init),
+            (r"/api/history", ReportsHandler, init),
             (r"/api/progress", ProgressHandler, init),
             (
                 r"/api/latest_result/(.*)",

@@ -37,12 +37,12 @@ def create_report(
             result_db['overallResult'] = value.dut.pass_fail_result
 
             # The actual results
-            result_db.update(report_dict[dut_sn])
+            result_db['testCases'] = report_dict[dut_sn]
 
             # Add also root level items
             result_db.update(root_items)
 
-            local_db[common_definitions.LOCAL_MONGODB_DB_NAME].test_reports.insert_one(result_db)
+            local_db.db_client[common_definitions.DB_NAME].test_reports.insert_one(result_db)
 
     filename = '_'.join(
         [

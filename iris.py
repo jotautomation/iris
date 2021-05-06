@@ -164,10 +164,11 @@ if ARGS.report_off:
 DUT_SN_QUEUE = Queue()
 MESSAGE_QUEUE = Queue()
 PROGRESS_QUEUE = Queue()
+DATABASE = None
 
 RUNNER_THREAD = threading.Thread(
     target=runner.run_test_runner,
-    args=(CONTROL, MESSAGE_QUEUE, PROGRESS_QUEUE, DUT_SN_QUEUE),
+    args=(CONTROL, MESSAGE_QUEUE, PROGRESS_QUEUE, DUT_SN_QUEUE, DATABASE),
     name='test_runner_thread',
 )
 RUNNER_THREAD.daemon = True
@@ -205,7 +206,7 @@ if ARGS.listener:
         PORT = ARGS.port
 
     listener.create_listener(
-        PORT, CONTROL, MESSAGE_HANDLER, PROGRESS_HANDLER, COMMON_DEFINITIONS, DUT_SN_QUEUE
+        PORT, CONTROL, MESSAGE_HANDLER, PROGRESS_HANDLER, COMMON_DEFINITIONS, DUT_SN_QUEUE, DATABASE
     )
     tornado.ioloop.IOLoop.current().start()
 

@@ -41,7 +41,7 @@ class TestCase(ABC):
         self.test_position = None
         self.name = self.__class__.__name__
         self.local_mongodb = local_mongodb
-        self.local_mongodb_name = common_definitions.LOCAL_MONGODB_DB_NAME
+        self.db_name = common_definitions.DB_NAME
         # Initialize measurement dictionary
         self.dut.measurements[self.name] = {}
 
@@ -190,7 +190,7 @@ class TestCase(ABC):
 
     def _store_test_data_file_to_db(self, file_path, **kwargs):
         if self.local_mongodb:
-            self.local_mongodb[self.local_mongodb_name].file_attachments.insert_one(
+            self.local_mongodb[self.db_name].file_attachments.insert_one(
                 {
                     'file_path': str(file_path),
                     'testRunId': self.test_run_id,

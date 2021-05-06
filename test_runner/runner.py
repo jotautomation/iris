@@ -6,7 +6,6 @@ import threading
 from test_runner import progress_reporter
 from test_runner import helpers
 from test_runner import exceptions
-from pymongo import MongoClient
 
 
 def get_common_definitions():
@@ -70,7 +69,7 @@ def get_sn_from_ui(dut_sn_queue):
     return (duts_sn, sequence_name)
 
 
-def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
+def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, database):
     """Starts the testing"""
 
     def send_message(message):
@@ -94,9 +93,12 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
         # Initialize all instruments
         common_definitions.instrument_initialization()
 
-    db_client = None
-    if common_definitions.LOCAL_MONGODB_CONNECTION:
-        db_client = MongoClient(common_definitions.LOCAL_MONGODB_CONNECTION)
+    if common_definitions.DB_CONNECTION_STRING and common_definitions.DB_NAME:
+        db_handler = common_definitions.DatabaseHandler(
+            common_definitions.DB_CONNECTION_STRING, common_definitions.DB_NAME
+        )
+    else:
+        db_handler = common_definitions.DatabaseHandler(None, None)
 
     # Execute boot_up defined for the test sequence
     common_definitions.boot_up()
@@ -118,12 +120,9 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                 general_state="Prepare", overall_result=None, test_positions=test_positions
             )
 
-            common_definitions.clean_db(db_client, common_definitions.LOCAL_MONGODB_DB_NAME)
-            progress.set_progress(
-                statistics=common_definitions.get_statistics(
-                    db_client, common_definitions.LOCAL_MONGODB_DB_NAME
-                )
-            )
+            db_handler.clean_db()
+
+            progress.set_progress(statistics=db_handler.get_statistics())
 
             # Create TestPosition instances
             for position in common_definitions.TEST_POSITIONS:
@@ -207,7 +206,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                                 progress,
                                 the_position_instance.dut,
                                 test_definitions.PARAMETERS,
-                                db_client,
+                                db_handler,
                                 common_definitions,
                             )
                         elif hasattr(test_pool, the_case):
@@ -216,7 +215,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                                 progress,
                                 the_position_instance.dut,
                                 test_definitions.PARAMETERS,
-                                db_client,
+                                db_handler,
                                 common_definitions,
                             )
                         else:
@@ -359,9 +358,9 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue):
                 results,
                 test_positions,
                 test_definitions.PARAMETERS,
-                db_client,
+                db_handler,
                 common_definitions,
-                progress
+                progress,
             )
 
         if test_control['single_run']:
