@@ -21,7 +21,7 @@ class DatabaseHandler:
             .test_reports.find(
                 {
                     'start_time': {'$gt': datetime.datetime.now() - datetime.timedelta(weeks=4)},
-                    'overallResult': True,
+                    'result': True,
                 }
             )
             .count()

@@ -5,7 +5,6 @@ class Dut:
         self.hw_id = hw_id
         self.patch = patch
         self.additional_info = additional_info
-        self.measurements = {}
-        self.results = {}
+        self.test_cases = {}
         self.pass_fail_result = True
         self.failed_steps = []

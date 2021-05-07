@@ -298,7 +298,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
 
                 dut = test_position_instance.dut
 
-                results[dut.serial_number] = test_position_instance.dut.results
+                results[dut.serial_number] = test_position_instance.dut.test_cases
 
                 if not test_position_instance.dut:
                     continue

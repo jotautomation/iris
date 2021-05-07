@@ -12,7 +12,7 @@ class PoolTestCase(TestCase):
         print("Running test case from pool")
         print(
             "Parameters can be used to parametrize the testing: "
-            + self.parameters.EXAMPLE_PARAMETER['dut1']
+            + self.parameters["param1"]
         )
 
     def post_test(self):

@@ -23,16 +23,13 @@ class FlowControl(Enum):
 class TestCase(ABC):
     """Base for all test cases"""
 
-    def __init__(
-        self, limits, report_progress, dut, parameters, local_mongodb, common_definitions
-    ):
+    def __init__(self, limits, report_progress, dut, parameters, db_handler, common_definitions):
         self.flow_control = common_definitions.FLOW_CONTROL
         self.parameters = parameters
         self.instruments = common_definitions.INSTRUMENTS
         self.dut = dut
         self.report_progress = report_progress
         self.limits = limits
-        self.results = {}
         self.logger = logging.getLogger('test_case')
         self.start_time = None
         self.start_time_monotonic = None
@@ -40,10 +37,10 @@ class TestCase(ABC):
         self.end_time = None
         self.test_position = None
         self.name = self.__class__.__name__
-        self.local_mongodb = local_mongodb
+        self.db_handler = db_handler
         self.db_name = common_definitions.DB_NAME
         # Initialize measurement dictionary
-        self.dut.measurements[self.name] = {}
+        self.dut.test_cases[self.name] = {'result': True, 'measurements': {}}
 
     def show_operator_instructions(self, message, append=False):
         self.report_progress.show_operator_instructions(message, append)
@@ -70,7 +67,9 @@ class TestCase(ABC):
 
     def new_measurement(self, name, measurement):
         """Adds new measurement to measurement array"""
-        self.dut.measurements[self.__class__.__name__][name] = measurement
+        self.dut.test_cases[self.name]['measurements'].setdefault(
+            name, {'measurement': measurement}
+        )
 
     def stop_testing(self):
         """Stops testing before going to next test step"""
@@ -79,19 +78,21 @@ class TestCase(ABC):
     def result_handler(self, error=None):
         """Checks if test is pass or fail. Can be overridden if needed."""
 
-        tmp_result = {}
+        case = self.dut.test_cases[self.name]
 
-        if error:
-            tmp_result['Error'] = {"limit": None, "measurement": error, "result": False}
-        elif self.limits:
+        for measurement_name, measurement_dict in self.dut.test_cases[self.name][
+            'measurements'
+        ].items():
+            pass_fail_result = True
+            limit = None
+            unit = None
+            try:
 
-            for measurement in self.dut.measurements[self.name].items():
-                try:
-                    limit = ''
-                    measurement_value = None
-                    measurement_name = measurement[0]
-                    measurement_value = measurement[1]
+                case['measurements'][measurement_name]["error"] = None
 
+                measurement_value = measurement_dict['measurement']
+
+                if self.name in self.limits:
                     limit = self.limits[self.name][measurement_name].get(
                         'report_limit',
                         inspect.getsource(self.limits[self.name][measurement_name]['limit']),
@@ -101,36 +102,36 @@ class TestCase(ABC):
                         measurement_value
                     )
 
-                    tmp_result[measurement_name] = {
-                        "unit": self.limits[self.name][measurement_name].get('unit', ''),
-                        "limit": limit,
-                        "measurement": measurement_value,
-                        "result": pass_fail_result,
-                    }
+                    unit = self.limits[self.name][measurement_name].get('unit', '')
 
-                except Exception as exp:
-                    tmp_result[measurement_name] = {
-                        "unit": '',
-                        "limit": limit,
-                        "measurement": measurement_value,
-                        "result": "ErrorOnLimits",
-                        "error": exp,
-                    }
-                finally:
-                    if not pass_fail_result:
-                        self.dut.pass_fail_result = False
+                case['measurements'][measurement_name]["unit"] = unit
+                case['measurements'][measurement_name]["limit"] = limit
+                case['measurements'][measurement_name]["result"] = pass_fail_result
+
+            except Exception as exp:
+                case['measurements'][measurement_name]["unit"] = unit
+                case['measurements'][measurement_name]["limit"] = limit
+                case['measurements'][measurement_name]["result"] = "ErrorOnLimits"
+                case['measurements'][measurement_name]["error"] = str(type(exp)) + ': ' + str(exp)
+
+            finally:
+                if not pass_fail_result:
+
+                    self.dut.pass_fail_result = False
+
+                    self.dut.test_cases[self.name]['result'] = False
+
+                    if self.name not in self.dut.failed_steps:
                         self.dut.failed_steps.append(self.name)
-                        if self.flow_control == FlowControl.STOP_ON_FAIL:
-                            self.stop_testing()
 
-        else:
-            tmp_result['no_limit_defined'] = {
-                "limit": None,
-                "measurement": None,
-                "measurement": True,
-            }
+                    if self.flow_control == FlowControl.STOP_ON_FAIL:
+                        self.stop_testing()
 
-        return tmp_result
+                if error:
+                    case['result'] = 'error'
+                    case['error'] = error
+                    if self.flow_control == FlowControl.STOP_ON_FAIL:
+                        self.stop_testing()
 
     def run_pre_test(self):
 
@@ -158,7 +159,7 @@ class TestCase(ABC):
         self.end_time = datetime.datetime.now()
         self.duration_s = time.monotonic() - self.start_time_monotonic
 
-        self.dut.results[self.name].update(
+        self.dut.test_cases[self.name].update(
             {
                 "start_time": self.start_time,
                 "end_time": self.end_time,
@@ -167,12 +168,12 @@ class TestCase(ABC):
         )
 
     def handle_error(self, error):
-        self.dut.results.setdefault(self.name, {}).update(self.result_handler(error))
+        self.result_handler(error)
         self.clean_error()
 
     def evaluate_results(self):
 
-        self.dut.results.setdefault(self.name, {}).update(self.result_handler())
+        self.result_handler()
 
     def store_test_data_file(self, source_file_path, dest_name, **kwargs):
         from common.test_report_writer import create_report_path
@@ -189,8 +190,8 @@ class TestCase(ABC):
         self._store_test_data_file_to_db(dest_path, **kwargs)
 
     def _store_test_data_file_to_db(self, file_path, **kwargs):
-        if self.local_mongodb:
-            self.local_mongodb[self.db_name].file_attachments.insert_one(
+        if self.db_handler.db_client:
+            self.db_handler.db_client[self.db_name].file_attachments.insert_one(
                 {
                     'file_path': str(file_path),
                     'testRunId': self.test_run_id,

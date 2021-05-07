@@ -34,7 +34,7 @@ def create_report(
 
             result_db = {'serialnumber': dut_sn}
 
-            result_db['overallResult'] = value.dut.pass_fail_result
+            result_db['result'] = value.dut.pass_fail_result
 
             # The actual results
             result_db['testCases'] = report_dict[dut_sn]
