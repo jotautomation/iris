@@ -59,6 +59,9 @@ class TestCase(ABC):
     def clean(self):
         """Called after all steps are done"""
 
+    def clean_error(self):
+        """Called after all steps are done"""
+
     def clean_pass(self):
         """Called after all steps are done if pass_fail_result is True"""
 

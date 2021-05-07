@@ -281,7 +281,26 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                             background_post_tasks[test_case_name][test_position_name].start()
 
                     except Exception as err:
-                        test_instance.result_handler(error=str(err.__class__) + ": " + str(err))
+
+                        trace = []
+                        trace_back = err.__traceback__
+                        while trace_back is not None:
+                            trace.append(
+                                {
+                                    "filename": trace_back.tb_frame.f_code.co_filename,
+                                    "name": trace_back.tb_frame.f_code.co_name,
+                                    "line": trace_back.tb_lineno,
+                                }
+                            )
+                            trace_back = trace_back.tb_next
+
+                        err_dict = {
+                            'type': type(err).__name__,
+                            'message': str(err),
+                            'trace': trace,
+                        }
+
+                        test_instance.handle_error(error=err_dict)
 
                     else:
                         # No error and no active tests
