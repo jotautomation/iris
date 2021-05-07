@@ -29,13 +29,21 @@ def create_report(
 
     # Extract each DUT and add to database
     for key, value in test_positions.items():
-        if value.dut is not None:
-            dut_sn = value.dut.serial_number
+
+        dut = value.dut
+
+        if dut is not None:
+            dut_sn = dut.serial_number
 
             result_db = {'serialnumber': dut_sn}
 
-            result_db['result'] = value.dut.pass_fail_result
+            result_db['result'] = dut.pass_fail_result
 
+            result_db['failedCases'] = dut.failed_steps
+
+            result_db['passedCases'] = [
+                case_name for case_name, case in dut.test_cases.items() if case['result']
+            ]
             # The actual results
             result_db['testCases'] = report_dict[dut_sn]
 
