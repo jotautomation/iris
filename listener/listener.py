@@ -128,38 +128,12 @@ class HistorySearchItems(IrisRequestHandler):
 
     def handle_get(self, host, user, *args):
         """Returns running test handlers"""
-        return {
-            'searchBarItems': [
-                {
-                    'name': 'last_results_number',
-                    'placeholder_txt': "Number of last items",
-                    'label': 'Number of last results',
-                    'type': 'textbox',
-                },
-                {
-                    'name': 'last_results_hours',
-                    'placeholder_txt': "Number of last items",
-                    'label': 'Hours',
-                    'type': 'textbox',
-                },
-                {
-                    'name': 'dut_identifier',
-                    'placeholder_txt': "ABCD-1234",
-                    'label': 'DUT ID',
-                    'type': 'textbox',
-                },
-                {
-                    'name': 'only_fails',
-                    'placeholder_txt': "",
-                    'label': 'Only Fails',
-                    'type': 'checkbox',
-                },
-            ]
-        }
+        return self.listener_args['database'].get_search_bar_items()
 
 
 class IrisEncoder(json.JSONEncoder):
     '''Encode json properly'''
+
     def default(self, obj):
 
         try:

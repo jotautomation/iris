@@ -21,7 +21,7 @@ class DatabaseHandler:
             .test_reports.find(
                 {
                     'start_time': {'$gt': datetime.datetime.now() - datetime.timedelta(weeks=4)},
-                    'result': True,
+                    'overallResult': True,
                 }
             )
             .count()
@@ -70,8 +70,65 @@ class DatabaseHandler:
             {'start_time': {'$lt': datetime.datetime.now() - datetime.timedelta(weeks=4)}}
         )
 
+    def get_search_bar_items(self):
+        return {
+            'searchBarItems': [
+                {
+                    'name': 'limit_N',
+                    'placeholder_txt': "Number of items to get",
+                    'label': 'Number of items',
+                    'type': 'textbox',
+                },
+                {
+                    'name': 'limit_hours',
+                    'placeholder_txt': "Hours",
+                    'label': 'Hours',
+                    'type': 'textbox',
+                },
+                {
+                    'name': 'dut_identifier',
+                    'placeholder_txt': "ABCD-1234",
+                    'label': 'DUT ID',
+                    'type': 'textbox',
+                },
+                {
+                    'name': 'only_fails',
+                    'placeholder_txt': "",
+                    'label': 'Only Fails',
+                    'type': 'checkbox',
+                },
+            ]
+        }
+
     def search_db(self, search_args):
 
-        reps = list(self.db_client[self.db_name].test_reports.find({}))
+        db_filter = {}
+        if 'limit_hours' in search_args:
+            db_filter.update(
+                {
+                    'start_time': {
+                        '$gt': datetime.datetime.now()
+                        - datetime.timedelta(hours=search_args['limit_hours'])
+                    }
+                }
+            )
 
-        return {'test_runs': reps}
+        if 'dut_identifier' in search_args:
+            db_filter.update({'serialnumber': search_args['dut_identifier']})
+
+        if 'only_fails' in search_args:
+            db_filter.update({'result': False})
+
+        limit = 500
+
+        if 'limit_N' in search_args:
+            limit = search_args['limit_N']
+
+        reps = (
+            self.db_client[self.db_name]
+            .test_reports.find(db_filter)
+            .sort('start_time')
+            .limit(limit)
+        )
+
+        return {'test_runs': list(reps)}
