@@ -42,10 +42,17 @@ PARSER.add_argument(
 PARSER.add_argument(
     "-d",
     "--dry-run",
-    help="Doesn't connect to the actual instruments, but creates mock objects instead.",
+    help="Replaces instruments with mock objects.",
     action="store_true",
 )
 
+PARSER.add_argument(
+    "-m",
+    "--mock",
+    help=r"""Replaces listed instruments with mock objects. Usage: iris.py -m INSTRUMENT1 INSTRUMENT2 ...
+instrument_initialization() is allowed to fail(silently!). """,
+    nargs='+'
+)
 
 PARSER.add_argument(
     "-v",
@@ -155,6 +162,9 @@ CONTROL['run'].set()
 
 if ARGS.dry_run:
     CONTROL['dry_run'] = True
+
+if ARGS.mock:
+    CONTROL['mock'] = ARGS.mock
 
 if ARGS.single_run:
     CONTROL['single_run'] = True

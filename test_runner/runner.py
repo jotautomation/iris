@@ -3,6 +3,7 @@ import datetime
 import time
 import json
 import threading
+from unittest.mock import MagicMock
 from test_runner import progress_reporter
 from test_runner import helpers
 from test_runner import exceptions
@@ -83,10 +84,20 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
     progress.set_progress(general_state="Boot")
 
     if test_control['dry_run']:
-        from unittest.mock import MagicMock
 
-        for instument in common_definitions.INSTRUMENTS.keys():
-            common_definitions.INSTRUMENTS[instument] = MagicMock()
+        for instrument in common_definitions.INSTRUMENTS.keys():
+            common_definitions.INSTRUMENTS[instrument] = MagicMock()
+
+    elif 'mock' in test_control:
+
+        try:
+            common_definitions.instrument_initialization()
+        except Exception as e:
+            pass
+
+        for instrument in common_definitions.INSTRUMENTS.keys():
+            if instrument in test_control['mock']:
+                common_definitions.INSTRUMENTS[instrument] = MagicMock()
     else:
         # Initialize all instruments
         common_definitions.instrument_initialization()
