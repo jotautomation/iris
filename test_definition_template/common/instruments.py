@@ -20,6 +20,8 @@ def instrument_initialization(progress):
 def handle_instrument_status(progress):
     """Reconnect to instrument, do other error resolving or any other status triggered task.
     Called in the beginning of each test run."""
+    if progress.instrument_status['gaia'] == "MagicMock":
+        return
 
     # Reconnect until connection is ok
     while progress.instrument_status['gaia'] != "OK":
@@ -33,6 +35,6 @@ def _connect_to_gaia(progress):
     try:
         INSTRUMENTS["gaia"] = gaiaclient.Client("http://localhost:1234")
     except requests.exceptions.ConnectionError as e:
-        progress.instrument_status['gaia'] = "Connection error"
+        progress.set_instrument_status('gaia', "Connection error")
     else:
-        progress.instrument_status['gaia'] = "OK"
+        progress.set_instrument_status('gaia', "OK")

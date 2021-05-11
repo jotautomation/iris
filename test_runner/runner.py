@@ -87,6 +87,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
 
         for instrument in common_definitions.INSTRUMENTS.keys():
             common_definitions.INSTRUMENTS[instrument] = MagicMock()
+            progress.set_instrument_status(instrument, 'MagicMock')
 
     elif 'mock' in test_control:
 
@@ -98,6 +99,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
         for instrument in common_definitions.INSTRUMENTS.keys():
             if instrument in test_control['mock']:
                 common_definitions.INSTRUMENTS[instrument] = MagicMock()
+                progress.set_instrument_status(instrument, 'MagicMock')
     else:
         # Initialize all instruments
         common_definitions.instrument_initialization(progress)
