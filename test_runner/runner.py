@@ -91,7 +91,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
     elif 'mock' in test_control:
 
         try:
-            common_definitions.instrument_initialization()
+            common_definitions.instrument_initialization(progress)
         except Exception as e:
             pass
 
@@ -100,7 +100,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                 common_definitions.INSTRUMENTS[instrument] = MagicMock()
     else:
         # Initialize all instruments
-        common_definitions.instrument_initialization()
+        common_definitions.instrument_initialization(progress)
 
     if common_definitions.DB_CONNECTION_STRING and common_definitions.DB_NAME:
         db_handler = common_definitions.DatabaseHandler(
@@ -132,6 +132,8 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             )
 
             db_handler.clean_db()
+
+            common_definitions.handle_instrument_status(progress)
 
             progress.set_progress(statistics=db_handler.get_statistics())
 

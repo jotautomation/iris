@@ -11,6 +11,11 @@ class ProgressReporter:
         self.sequence_name = None
         self.operator_instructions = None
         self.progess_queue = progess_queue
+        self.instrument_status = {}
+
+    def set_instrument_status(self, instrument, status):
+        self.instrument_status[instrument] = status
+        self._report_progress()
 
     def set_progress(self, **kwargs):
         # Store variable
