@@ -104,12 +104,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
         # Initialize all instruments
         common_definitions.instrument_initialization(progress)
 
-    if common_definitions.DB_CONNECTION_STRING and common_definitions.DB_NAME:
-        db_handler = common_definitions.DatabaseHandler(
-            common_definitions.DB_CONNECTION_STRING, common_definitions.DB_NAME
-        )
-    else:
-        db_handler = common_definitions.DatabaseHandler(None, None)
+    db_handler = common_definitions.INSTRUMENTS[common_definitions.DB_HANDLER_NAME]
 
     listener_args['database'] = db_handler
 
@@ -133,11 +128,11 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                 general_state="Prepare", overall_result=None, test_positions=test_positions
             )
 
-            db_handler.clean_db()
-
             common_definitions.handle_instrument_status(progress)
 
-            progress.set_progress(statistics=db_handler.get_statistics())
+            if db_handler:
+                db_handler.clean_db()
+                progress.set_progress(statistics=db_handler.get_statistics())
 
             # Create TestPosition instances
             for position in common_definitions.TEST_POSITIONS:

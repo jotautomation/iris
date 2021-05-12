@@ -49,8 +49,7 @@ def create_report(
 
             # Add also root level items
             result_db.update(root_items)
-
-            local_db.db_client[common_definitions.DB_NAME].test_reports.insert_one(result_db)
+            local_db.db_client[local_db.db_name].test_reports.insert_one(result_db)
 
     filename = '_'.join(
         [

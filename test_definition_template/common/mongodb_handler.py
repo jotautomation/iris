@@ -5,7 +5,7 @@ from pymongo import MongoClient
 
 class DatabaseHandler:
     def __init__(self, db_connection_string, db_name):
-        self.db_client = MongoClient(db_connection_string)
+        self.db_client = MongoClient(db_connection_string, serverSelectionTimeoutMS=10000)
         self.db_name = db_name
 
     def get_statistics(self):
@@ -15,6 +15,7 @@ class DatabaseHandler:
         }
 
     def get_yield(self):
+
 
         pass_count = (
             self.db_client[self.db_name]
@@ -132,3 +133,15 @@ class DatabaseHandler:
         )
 
         return {'test_runs': list(reps)}
+
+    def store_test_data_file_to_db(self, file_path, **kwargs):
+        self.db_client[self.db_handler.db_name].file_attachments.insert_one(
+            {
+                'file_path': str(file_path),
+                'testRunId': self.test_run_id,
+                'testCase': self.name,
+                'dut': self.dut.serial_number,
+                'added': datetime.datetime.now(),
+                **kwargs,
+            }
+        )

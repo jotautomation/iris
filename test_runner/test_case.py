@@ -38,7 +38,6 @@ class TestCase(ABC):
         self.test_position = None
         self.name = self.__class__.__name__
         self.db_handler = db_handler
-        self.db_name = common_definitions.DB_NAME
         # Initialize measurement dictionary
         self.dut.test_cases[self.name] = {'result': True, 'measurements': {}}
 
@@ -193,14 +192,5 @@ class TestCase(ABC):
         self._store_test_data_file_to_db(dest_path, **kwargs)
 
     def _store_test_data_file_to_db(self, file_path, **kwargs):
-        if self.db_handler.db_client:
-            self.db_handler.db_client[self.db_name].file_attachments.insert_one(
-                {
-                    'file_path': str(file_path),
-                    'testRunId': self.test_run_id,
-                    'testCase': self.name,
-                    'dut': self.dut.serial_number,
-                    'added': datetime.datetime.now(),
-                    **kwargs,
-                }
-            )
+        if self.db_handler:
+            self.db_handler.store_test_data_file(file_path, **kwargs)
