@@ -225,6 +225,8 @@ class MessageWebsocketHandler(tornado.websocket.WebSocketHandler):
         def send_a_message(self, msg):
             try:
                 self.write_message(msg)
+            except tornado.websocket.WebSocketClosedError:
+                pass
             except Exception as e:
                 print(e)
                 raise e
