@@ -56,6 +56,7 @@ class ProgressReporter:
             progress_json['overall_result'] = self.overall_result
 
         progress_json['statistics'] = self.statistics
+        progress_json['instrument_status'] = self.instrument_status
 
         progress_json['operator_instructions'] = self.operator_instructions
 
