@@ -11,10 +11,23 @@ class ProgressReporter:
         self.sequence_name = None
         self.operator_instructions = None
         self.progess_queue = progess_queue
-        self.instrument_status = {}
+        self.instrument_status = None
+        self.version_info = None
 
     def set_instrument_status(self, instrument, status):
+
+        if self.instrument_status is None:
+            self.instrument_status = {}
+
         self.instrument_status[instrument] = status
+        self._report_progress()
+
+    def set_version_info(self, version_name, version_value):
+
+        if self.version_info is None:
+            self.version_info = {}
+
+        self.version_info[version_name] = version_value
         self._report_progress()
 
     def set_progress(self, **kwargs):
@@ -57,6 +70,7 @@ class ProgressReporter:
 
         progress_json['statistics'] = self.statistics
         progress_json['instrument_status'] = self.instrument_status
+        progress_json['version_info'] = self.version_info
 
         progress_json['operator_instructions'] = self.operator_instructions
 
