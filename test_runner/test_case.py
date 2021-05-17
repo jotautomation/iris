@@ -193,4 +193,11 @@ class TestCase(ABC):
 
     def _store_test_data_file_to_db(self, file_path, **kwargs):
         if self.db_handler:
-            self.db_handler.store_test_data_file(file_path, **kwargs)
+            self.db_handler.store_test_data_file(
+                file_path=str(file_path),
+                testRunId=self.test_run_id,
+                testCase=self.name,
+                dut=self.dut.serial_number,
+                added=datetime.datetime.now(),
+                **kwargs
+            )
