@@ -7,7 +7,7 @@ import threading
 from test_runner import exceptions
 
 
-def import_by_name(name, error_message):
+def import_by_name(name, error_message, logger):
     sys.path.append(os.getcwd())
     sys.path.append(os.path.join(os.getcwd(), 'test_definitions'))
 
@@ -16,20 +16,20 @@ def import_by_name(name, error_message):
 
         # TODO: This hides also errors on nested imports
     except ImportError as err:
-        print(err)
-        print(error_message)
+        logger.warning(err)
+        logger.warning(error_message)
         sys.exit(-1)
 
     return imp
 
 
-def get_test_pool_definitions():
+def get_test_pool_definitions(logger):
     """Returns test definition pool"""
 
-    return import_by_name('test_case_pool', "test_case_pool missing?")
+    return import_by_name('test_case_pool', "test_case_pool missing?", logger)
 
 
-def get_test_definitions(sequence_name):
+def get_test_definitions(sequence_name, logger):
     """Returns test definitions"""
 
     err = (
@@ -38,4 +38,4 @@ def get_test_definitions(sequence_name):
         + ". Remember, you can create new definition template with --create argument."
     )
 
-    return import_by_name("sequences." + sequence_name, err)
+    return import_by_name("sequences." + sequence_name, err, logger)

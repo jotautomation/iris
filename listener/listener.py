@@ -218,6 +218,7 @@ class MessageWebsocketHandler(tornado.websocket.WebSocketHandler):
 
         self.loop = asyncio.get_event_loop()  # pylint: disable=W0201
         self.return_message_handler = return_message_handler  # pylint: disable=W0201
+        self.logger = logging.getLogger("MessageWebsocketHandler")
 
     def websocket_signal_handler(self, message):  # pylint: disable=W0613
         """Sends application state changes through websocket"""
@@ -228,7 +229,7 @@ class MessageWebsocketHandler(tornado.websocket.WebSocketHandler):
             except tornado.websocket.WebSocketClosedError:
                 pass
             except Exception as e:
-                print(e)
+                self.logger.exception("Failed to write to the websocket")
                 raise e
 
         self.loop.call_soon_threadsafe(send_a_message, self, message)

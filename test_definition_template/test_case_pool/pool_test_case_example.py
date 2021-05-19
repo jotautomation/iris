@@ -9,8 +9,8 @@ class PoolTestCase(TestCase):
         pass
 
     def test(self):
-        print("Running test case from pool")
-        print(
+        self.logger.info("Running test case from pool")
+        self.logger.info(
             "Parameters can be used to parametrize the testing: "
             + self.parameters["param1"]
         )

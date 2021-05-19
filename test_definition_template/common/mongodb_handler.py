@@ -1,5 +1,6 @@
 import datetime
 import pathlib
+import logging
 from pymongo import MongoClient
 
 
@@ -7,6 +8,7 @@ class DatabaseHandler:
     def __init__(self, db_connection_string, db_name):
         self.db_client = MongoClient(db_connection_string, serverSelectionTimeoutMS=10000)
         self.db_name = db_name
+        self.logger = logging.getLogger("DatabaseHandler")
 
     def get_statistics(self):
         return {
@@ -60,7 +62,9 @@ class DatabaseHandler:
             try:
                 pathlib.Path(_file['file_path']).unlink()
             except FileNotFoundError:
-                print("Trying to delete non-existent file attachment: " + _file['file_path'])
+                self.logger.warning(
+                    "Trying to delete non-existent file attachment: %s", _file['file_path']
+                )
 
         # Delete file entries on database
         self.db_client[self.db_name].file_attachments.delete_many(file_delete_filter)

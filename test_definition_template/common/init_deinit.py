@@ -1,12 +1,12 @@
 """Initializations and deinitializations"""
 
 
-def boot_up():
-    print("Executing initialization")
+def boot_up(logger):
+    logger.info("Executing initialization")
 
 
-def finalize_test(overallresult, duts, instruments):
-    print("Testing ready. Release DUT(s) on Gaia")
+def finalize_test(overallresult, duts, instruments, logger):
+    logger.info("Testing ready. Release DUT(s) on Gaia")
 
     if overallresult:
         instruments['gaia'].state_triggers['ReleasePass']()
@@ -16,8 +16,8 @@ def finalize_test(overallresult, duts, instruments):
     instruments['gaia'].wait_not_ready()
 
 
-def prepare_test(instruments):
-    print("Waiting G5 to get ready for next (or first) test run")
+def prepare_test(instruments, logger):
+    logger.info("Waiting G5 to get ready for next (or first) test run")
     instruments['gaia'].wait_ready()
     import uuid
 
@@ -34,5 +34,5 @@ def prepare_test(instruments):
     }, "testA")
 
 
-def shutdown(instruments):
-    print("Shutdown")
+def shutdown(instruments, logger):
+    logger.info("Shutdown")

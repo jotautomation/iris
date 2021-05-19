@@ -3,6 +3,7 @@ import datetime
 import time
 import json
 import threading
+import logging
 from unittest.mock import MagicMock
 from test_runner import progress_reporter
 from test_runner import helpers
@@ -13,7 +14,9 @@ def get_common_definitions():
     """Returns test definitions"""
 
     return helpers.import_by_name(
-        'common', "No test definitions defined? Create definition template with --create argument."
+        'common',
+        "No test definitions defined? Create definition template with --create argument.",
+        logging.getLogger("common_definitions"),
     )
 
 
@@ -35,7 +38,7 @@ def get_test_control():
     }
 
 
-def get_sn_from_ui(dut_sn_queue):
+def get_sn_from_ui(dut_sn_queue, logger):
     """Returns serial numbers from UI"""
 
     sequence_name = None
@@ -43,7 +46,11 @@ def get_sn_from_ui(dut_sn_queue):
     duts_sn = {
         test_position.name: {'sn': None} for test_position in common_definitions.TEST_POSITIONS
     }
-    print('Wait SNs from UI for test_positions: ' + str(common_definitions.TEST_POSITIONS))
+    logger.info(
+        'Wait SNs from UI for test_positions: '
+        + ", ".join([str(t) for t in common_definitions.TEST_POSITIONS])
+    )
+
     while True:
         msg = dut_sn_queue.get()
 
@@ -63,8 +70,8 @@ def get_sn_from_ui(dut_sn_queue):
             if not duts_sn[dut]['sn']:
                 break
         else:
-            print("All DUT serial numbers received from UI")
-            print("Selected test sequence_name", sequence_name)
+            logger.info("All DUT serial numbers received from UI")
+            logger.info("Selected test %s", sequence_name)
             break
 
     return (duts_sn, sequence_name)
@@ -72,6 +79,8 @@ def get_sn_from_ui(dut_sn_queue):
 
 def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, listener_args):
     """Starts the testing"""
+
+    logger = logging.getLogger('test_runner')
 
     def send_message(message):
         if message:
@@ -109,7 +118,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
     listener_args['database'] = db_handler
 
     # Execute boot_up defined for the test sequence
-    common_definitions.boot_up()
+    common_definitions.boot_up(logger)
 
     test_positions = {}
     fail_reason_history = ''
@@ -120,6 +129,8 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
     while not test_control['terminate']:
         # Wait until you are allowed to run again i.e. pause
         test_control['run'].wait()
+        logger.info("Start new test run")
+
         try:
             background_pre_tasks = {}
             background_post_tasks = {}
@@ -147,13 +158,13 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             # DUT sn may come from UI
             if test_control['get_sn_from_ui']:
 
-                dut_sn_values, sequence_name = get_sn_from_ui(dut_sn_queue)
-                common_definitions.prepare_test(common_definitions.INSTRUMENTS)
+                dut_sn_values, sequence_name = get_sn_from_ui(dut_sn_queue, logger)
+                common_definitions.prepare_test(common_definitions.INSTRUMENTS, logger)
 
             else:
                 # Or from prepare_test function
                 dut_sn_values, sequence_name = common_definitions.prepare_test(
-                    common_definitions.INSTRUMENTS
+                    common_definitions.INSTRUMENTS, logger
                 )
 
             # Create dut instances
@@ -168,10 +179,10 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             results = {}
 
             # Fetch test definitions i.e. import module
-            test_definitions = helpers.get_test_definitions(sequence_name)
+            test_definitions = helpers.get_test_definitions(sequence_name, logger)
 
             # Fetch test case pool too
-            test_pool = helpers.get_test_pool_definitions()
+            test_pool = helpers.get_test_pool_definitions(logger)
 
             # Remove skipped test_case_names from test list
             test_case_names = [t for t in test_definitions.TESTS if t not in test_definitions.SKIP]
@@ -246,7 +257,6 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                     try:
                         if is_pre_test:
                             # Start pre task and store it to dictionary
-
                             if test_case_name not in background_pre_tasks:
                                 background_pre_tasks[test_case_name] = {}
 
@@ -357,7 +367,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                 sequence_name=sequence_name,
             )
             common_definitions.finalize_test(
-                dut.pass_fail_result, test_positions, common_definitions.INSTRUMENTS
+                dut.pass_fail_result, test_positions, common_definitions.INSTRUMENTS, logger
             )
 
             results["start_time"] = start_time
@@ -369,7 +379,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
 
         except exceptions.IrisError as e:
             # TODO: write error to report
-            print(e)
+            logger.exception("Error on testsequence")
             raise
         else:
             pass

@@ -25,6 +25,7 @@ class TestCase(ABC):
 
     def __init__(self, limits, report_progress, dut, parameters, db_handler, common_definitions):
         self.flow_control = common_definitions.FLOW_CONTROL
+        self.logger = logging.getLogger('test_case')
         self.parameters = parameters
         self.instruments = common_definitions.INSTRUMENTS
         self.dut = dut
@@ -69,6 +70,8 @@ class TestCase(ABC):
 
     def new_measurement(self, name, measurement):
         """Adds new measurement to measurement array"""
+        self.logger.debug("New measurement: %s:%s:%s", self.name, name, measurement)
+
         if name not in self.dut.test_cases[self.name]['measurements']:
             self.dut.test_cases[self.name]['measurements'][name] = {}
 
@@ -136,17 +139,21 @@ class TestCase(ABC):
                         self.stop_testing()
 
     def run_pre_test(self):
-
+        self.logger.debug("Running pre_test at %s", self.name)
         self.start_time = datetime.datetime.now()
         self.start_time_monotonic = time.monotonic()
         self.pre_test()
         self.evaluate_results()
+        self.logger.debug("Pre_test done at %s", self.name)
 
     def run_test(self):
+        self.logger.debug("Running test at %s", self.name)
         self.test()
         self.evaluate_results()
+        self.logger.debug("Test done at %s", self.name)
 
     def run_post_test(self):
+        self.logger.debug("Running post_test done at %s", self.name)
         self.post_test()
 
         self.evaluate_results()
@@ -168,8 +175,10 @@ class TestCase(ABC):
                 "duration_s": round(self.duration_s, 2),
             }
         )
+        self.logger.debug("Post_test done at %s", self.name)
 
     def handle_error(self, error):
+        self.logger.warn("Error at %s: %s", self.name, error)
         self.result_handler(error)
         self.clean_error()
 

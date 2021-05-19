@@ -6,7 +6,7 @@ class Second(TestCase):
         pass
 
     def test(self):
-        print("At second test case")
+        self.logger.info("At second test case")
         self.new_measurement("Measurement1", 123)
         # instruments["G5"].do_something_with_instrument()
         self.new_measurement("Measurement2", [123, 456, 1, 3])

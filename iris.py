@@ -106,6 +106,7 @@ if not ARGS.no_colored_logs:
 LOGGER = logging.getLogger(__name__)
 
 LOGGER.debug("Logging initialized")
+LOGGER.info("Logging initialized")
 
 if ARGS.create:
 
@@ -115,7 +116,7 @@ if ARGS.create:
     TEST_DEF_PATH = os.path.join("./test_definitions/sequences", ARGS.create[0])
 
     if os.path.isdir(TEST_DEF_PATH):
-        print("Test sequence " + ARGS.create[0] + " already exists")
+        LOGGER.warning("Test sequence " + ARGS.create[0] + " already exists")
         sys.exit(-1)
 
     copy_tree(example_sequence.__path__[0], TEST_DEF_PATH)
@@ -132,7 +133,7 @@ if ARGS.create:
         copyfile(additional_dist_files.__path__[0] + '/Dockerfile', './Dockerfile')
         copyfile(additional_dist_files.__path__[0] + '/docker-compose.yml', './docker-compose.yml')
     else:
-        print('./test_definitions/common already exists. Not copying it.')
+        LOGGER.info('./test_definitions/common already exists. Not copying it.')
 
     sys.exit(0)
 
@@ -194,13 +195,20 @@ class MessageHandler:
                 handler(msg)
 
 
-MESSAGE_HANDLER = [print]
+MESSAGE_HANDLER = []
+
+# If you want to also print message, add print handler like this:
+# MESSAGE_HANDLER = [print]
 
 MESSAGE_THREAD = threading.Thread(
     target=MessageHandler, args=(MESSAGE_QUEUE, MESSAGE_HANDLER), name='message_thread'
 )
 
-PROGRESS_HANDLER = [print]
+PROGRESS_HANDLER = []
+
+# If you want to also print message, add print handler like this:
+# PROGRESS_HANDLER = [print]
+
 
 PROGRESS_THREAD = threading.Thread(
     target=MessageHandler, args=(PROGRESS_QUEUE, PROGRESS_HANDLER), name='progress_thread'

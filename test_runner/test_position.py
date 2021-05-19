@@ -16,3 +16,6 @@ class TestPosition:
 
         if not self.test_status:
             self.test_status = "Idle"
+
+    def __str__(self):
+        return self.name
