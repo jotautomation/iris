@@ -134,4 +134,4 @@ class DatabaseHandler:
         return {'test_runs': list(reps)}
 
     def store_test_data_file_to_db(self, **kwargs):
-        self.db_client[self.db_name].file_attachments.insert_one(**kwargs)
+        self.db_client[self.db_name].file_attachments.insert_one({**kwargs})
