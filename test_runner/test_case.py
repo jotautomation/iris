@@ -69,9 +69,10 @@ class TestCase(ABC):
 
     def new_measurement(self, name, measurement):
         """Adds new measurement to measurement array"""
-        self.dut.test_cases[self.name]['measurements'].setdefault(
-            name, {'measurement': measurement}
-        )
+        if name not in self.dut.test_cases[self.name]['measurements']:
+            self.dut.test_cases[self.name]['measurements'][name] = {}
+
+        self.dut.test_cases[self.name]['measurements'][name]['measurement'] = measurement
 
     def stop_testing(self):
         """Stops testing before going to next test step"""
@@ -89,7 +90,6 @@ class TestCase(ABC):
             limit = None
             unit = None
             try:
-
                 case['measurements'][measurement_name]["error"] = None
 
                 measurement_value = measurement_dict['measurement']
@@ -193,7 +193,7 @@ class TestCase(ABC):
 
     def _store_test_data_file_to_db(self, file_path, **kwargs):
         if self.db_handler:
-            self.db_handler.store_test_data_file(
+            self.db_handler.store_test_data_file_to_db(
                 file_path=str(file_path),
                 testRunId=self.test_run_id,
                 testCase=self.name,
