@@ -1,5 +1,7 @@
 """HTTP listener to enable REST API and serving web UI"""
 
+import time
+import shutil
 import logging
 import json
 import os
@@ -258,6 +260,32 @@ class MessageWebsocketHandler(tornado.websocket.WebSocketHandler):
         return True
 
 
+class LogsHandler(IrisRequestHandler):
+    _filename = ''
+
+    def get(self, *args):
+        self._filename = 'logs_' + time.strftime("%Y%m%d-%H%M%S")
+        self.set_header('Content-Type', 'application/force-download')
+        self.set_header('Content-Disposition', 'attachment; filename=%s' % self._filename + '.zip')
+        shutil.make_archive(self._filename, 'zip', 'logs/')
+        with open(os.path.join(self._filename + '.zip'), "rb") as _f:
+            try:
+                while True:
+                    _buffer = _f.read(4096)
+                    if _buffer:
+                        self.write(_buffer)
+                    else:
+                        _f.close()
+                        self.finish()
+                        return
+            except:
+                raise tornado.web.HTTPError(404, "Log files not found")
+
+    def on_finish(self):
+        if os.path.exists(self._filename + '.zip'):
+            os.remove(self._filename + '.zip')
+
+
 def create_listener(
     port,
     test_control,
@@ -309,6 +337,7 @@ def create_listener(
             (r"/api/websocket/log", LogsWebSocketHandler),
             (r"/api/testcontrol", TestRunnerHandler, init),
             (r"/api/testcontrol/([0-9]+)", TestRunnerHandler, init),
+            (r"/logs", LogsHandler, init),
             (r"/(.*\.(js|json|html|css))", tornado.web.StaticFileHandler, {'path': ui_path}),
             (r"/(.*)", UiEntryHandler, {'path': ui_path, "default_filename": "index.html"}),
         ]
