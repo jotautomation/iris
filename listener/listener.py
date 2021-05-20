@@ -6,6 +6,7 @@ import os
 import asyncio
 import tornado.web
 import tornado.websocket
+from listener.logs_web_socket import LogsWebSocketHandler
 
 RESP_CONTENT_TYPE = 'application/vnd.siren+json; charset=UTF-8'
 
@@ -305,6 +306,7 @@ def create_listener(
                 NoCacheStaticFileHandler,
                 {'path': 'results/', "default_filename": "latest_result.html"},
             ),
+            (r"/api/websocket/log", LogsWebSocketHandler),
             (r"/api/testcontrol", TestRunnerHandler, init),
             (r"/api/testcontrol/([0-9]+)", TestRunnerHandler, init),
             (r"/(.*\.(js|json|html|css))", tornado.web.StaticFileHandler, {'path': ui_path}),
