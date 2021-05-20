@@ -16,7 +16,6 @@ import tornado
 import json
 import pathlib
 import yaml
-import coloredlogs
 import logging.config
 
 PORT = 4321
@@ -57,12 +56,8 @@ instrument_initialization() is allowed to fail(silently!). """,
 PARSER.add_argument(
     "-v",
     "--verbose",
-    help="Increase output verbosity. Sets colored console logging to debug level.",
+    help="Increase output verbosity. Sets root logger to debug level.",
     action="store_true",
-)
-
-PARSER.add_argument(
-    '--no_colored_logs', '-n', help='Disables colored logs on console.', action="store_true"
 )
 
 PARSER.add_argument(
@@ -90,18 +85,8 @@ else:
     logging.basicConfig(level=logging.INFO)
     logging.warning('Cannot find logging settings. Logging with basicConfig.')
 
-if not ARGS.no_colored_logs:
-    HANDLERS = logging.getLogger().handlers
-    CONSOLE_LOG_LEVEL = list(
-        filter(lambda x: x and x.name and x.name.lower() == 'console', HANDLERS)
-    )
-
-    if CONSOLE_LOG_LEVEL:
-        CONSOLE_LOG_LEVEL = CONSOLE_LOG_LEVEL[0].level
-        if ARGS.verbose:
-            CONSOLE_LOG_LEVEL = logging.DEBUG
-
-        coloredlogs.install(level=CONSOLE_LOG_LEVEL, milliseconds=True)
+if ARGS.verbose:
+    logging.getLogger().setLevel(logging.DEBUG)
 
 LOGGER = logging.getLogger(__name__)
 

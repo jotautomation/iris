@@ -27,8 +27,10 @@ class LogsWebSocketHandler(tornado.websocket.WebSocketHandler):
     Note that Tornado uses asyncio. Since we are using threads on our backend
     we need to use call_soon_threadsafe to get messages through.
     """
+
     def __init__(self, application, request, **kwargs):
-        self._logger = None
+
+        self._root_logger = logging.getLogger()
         self._stream_handler = None
         super().__init__(application, request, **kwargs)
         self.loop = asyncio.get_event_loop()  # pylint: disable=W0201
@@ -36,23 +38,27 @@ class LogsWebSocketHandler(tornado.websocket.WebSocketHandler):
     def open(self, *args, **kwargs):
         """Called when websocket is opened"""
 
-        self._logger = logging.getLogger()
+        # Get websocket logger just for getting logging settings
+        ws_logger = logging.getLogger('websocket')
         # Get handler which is configured is logging.yaml
-        handler = list(filter(
-            lambda x: x.name is not None and x.name.lower() == 'websocket',
-            self._logger.handlers))[0]
+        handler = list(
+            filter(
+                lambda x: x.name is not None and x.name.lower() == 'websocket', ws_logger.handlers
+            )
+        )[0]
 
         weblogger = WebsocketStreamHandler(self)
         self._stream_handler = logging.StreamHandler(weblogger)
         self._stream_handler.formatter = handler.formatter
         self._stream_handler.level = handler.level
-        self._logger.addHandler(self._stream_handler)
 
-        self._logger.info('Websocket logger connected')
+        self._root_logger.addHandler(self._stream_handler)
+
+        self._root_logger.info('Websocket logger connected')
 
     def on_close(self):
         """Called when websocket is closed"""
-        self._logger.removeHandler(self._stream_handler)
+        self._root_logger.removeHandler(self._stream_handler)
 
     def on_message(self, message):
         """Called when message comes from client through websocket"""

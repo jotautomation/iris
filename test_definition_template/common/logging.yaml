@@ -7,21 +7,35 @@ version: 1
 log_file_path: 'logs/'
 disable_existing_loggers: False
 formatters:
+    colorlog:
+        '()': 'colorlog.ColoredFormatter'
+        format: '[%(cyan)s%(asctime)s%(reset)s] [%(log_color)s%(levelname)s]%(reset)s %(name)s:%(message)s'
+        datefmt: '%H:%M:%S'
     long:
-        #format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
         format: "%(asctime)s,%(msecs)d %(levelname)-8s [%(name)s.%(funcName)s:%(lineno)d] %(threadName)s:%(message)s"
+    default:
+        format: "%(asctime)s,%(msecs)d %(levelname)-8s %(message)s"
 handlers:
     console:
         class: logging.StreamHandler
-        level: INFO
-        formatter: long
+        formatter: colorlog
         stream: ext://sys.stdout
+        level: DEBUG
 
     test_case_file_handler:
         class: logging.handlers.RotatingFileHandler
         level: INFO
-        formatter: long
+        formatter: default
         filename: ./logs/test_case.log
+        maxBytes: 1048576 # 1MB
+        backupCount: 20
+        encoding: utf8
+
+    debug_file_handler:
+        class: logging.handlers.RotatingFileHandler
+        level: DEBUG
+        formatter: default
+        filename: ./logs/debug.log
         maxBytes: 1048576 # 1MB
         backupCount: 20
         encoding: utf8
@@ -29,7 +43,7 @@ handlers:
     info_file_handler:
         class: logging.handlers.RotatingFileHandler
         level: INFO
-        formatter: long
+        formatter: default
         filename: ./logs/info.log
         maxBytes: 1048576 # 1MB
         backupCount: 20
@@ -38,7 +52,7 @@ handlers:
     error_file_handler:
         class: logging.handlers.RotatingFileHandler
         level: ERROR
-        formatter: long
+        formatter: default
         filename: ./logs/errors.log
         maxBytes: 1048576 # 1MB
         backupCount: 20
@@ -47,7 +61,7 @@ handlers:
     websocket:
         class: logging.StreamHandler
         level: INFO
-        formatter: long
+        formatter: default
 
 loggers:
     # Separate logger for test cases. Everything that is logged
@@ -56,6 +70,12 @@ loggers:
     test_case:
         handlers: [console, test_case_file_handler]
 
+    websocket:
+        handlers: [websocket]
 root:
-    handlers: [console, info_file_handler, error_file_handler, websocket]
+    # This sets the max level of logging for all logger and handers.
+    # I.e. if you set level WARNING here, all loggers will get only WARNING and
+    # above (so error, critical) logs. Set debug here to get debug logs.
+    level: INFO
+    handlers: [console, info_file_handler, error_file_handler]
 ...

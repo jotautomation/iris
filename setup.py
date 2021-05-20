@@ -53,7 +53,7 @@ get_ui()
 
 setup(
     name="jot-iris",
-    version="1.3.10",
+    version="1.4.0",
     license="MIT License",
     author="JOT Automation Ltd.",
     author_email="rami.rahikkala@jotautomation.com",
@@ -76,7 +76,7 @@ setup(
         "tornado",
         "gaiaclient",
         "PyYAML",
-        "coloredlogs",
+        "colorlog",
         "colorama",
         "mock",
         "pymongo",
