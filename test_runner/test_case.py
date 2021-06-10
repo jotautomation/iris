@@ -181,6 +181,13 @@ class TestCase(ABC):
     def handle_error(self, error):
         self.logger.warn("Error at %s: %s", self.name, error)
         self.result_handler(error)
+        self.dut.test_cases[self.name].update(
+            {
+                "start_time": self.start_time,
+                "end_time": self.end_time,
+                "duration_s": round(self.duration_s, 2),
+            }
+        )
         self.clean_error()
 
     def evaluate_results(self):
