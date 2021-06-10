@@ -10,6 +10,11 @@ class DatabaseHandler:
         self.db_name = db_name
         self.logger = logging.getLogger("DatabaseHandler")
 
+    def get_media_file_path(self, file_name):
+        return self.db_client[self.db_name].file_attachments.find_one({'name': file_name})[
+            'file_path'
+        ]
+
     def get_statistics(self):
         return {
             'yield': self.get_yield(),

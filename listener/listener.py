@@ -286,6 +286,19 @@ class LogsHandler(IrisRequestHandler):
             os.remove(self._filename + '.zip')
 
 
+class MediaFileHandler(tornado.web.StaticFileHandler):
+    def initialize(self, listener_args, path, **kwargs):
+        """Initialize is called when tornado.web.Application is created"""
+        self.logger = logging.getLogger(self.__class__.__name__)  # pylint: disable=W0201
+        # Disable tornado access logging by default
+        logging.getLogger('tornado.access').disabled = True
+        self.listener_args = listener_args  # pylint: disable=W0201
+        super().initialize(path=path)
+
+    def parse_url_path(self, url_path):
+        return self.listener_args['database'].get_media_file_path(url_path)
+
+
 def create_listener(
     port,
     test_control,
@@ -338,6 +351,11 @@ def create_listener(
             (r"/api/testcontrol", TestRunnerHandler, init),
             (r"/api/testcontrol/([0-9]+)", TestRunnerHandler, init),
             (r"/logs", LogsHandler, init),
+            (
+                r"/api/media/(.*)",
+                MediaFileHandler,
+                {'listener_args': listener_args, 'path': os.getcwd()},
+            ),
             (r"/(.*\.(js|json|html|css))", tornado.web.StaticFileHandler, {'path': ui_path}),
             (r"/(.*)", UiEntryHandler, {'path': ui_path, "default_filename": "index.html"}),
         ]

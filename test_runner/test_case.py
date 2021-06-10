@@ -39,6 +39,7 @@ class TestCase(ABC):
         self.test_position = None
         self.name = self.__class__.__name__
         self.db_handler = db_handler
+        self.my_ip = common_definitions.IRIS_IP
         # Initialize measurement dictionary
         self.dut.test_cases[self.name] = {'result': True, 'measurements': {}}
 
@@ -198,15 +199,30 @@ class TestCase(ABC):
         dest_path.mkdir(parents=True, exist_ok=True)
         dest_path = dest_path / dest_name
         Path(source_file_path).rename(dest_path)
-        self._store_test_data_file_to_db(dest_path, **kwargs)
 
-    def _store_test_data_file_to_db(self, file_path, **kwargs):
+        data = {
+            'name': dest_name,
+            'file_path': str(dest_path),
+            'testRunId': self.test_run_id,
+            'testCase': self.name,
+            'dut': self.dut.serial_number,
+            'added': datetime.datetime.now(),
+            'size': Path(dest_path).stat().st_size,
+            'expires': datetime.datetime.now() + datetime.timedelta(weeks=1),
+            'url': f'http://{self.my_ip}/api/media/{dest_name}',
+            **kwargs,
+        }
+
+        self._store_test_data_file_to_db(data)
+
+
+        # Store data to test cases for reporting
+        if 'media' not in self.dut.test_cases[self.name]:
+            self.dut.test_cases[self.name]['media'] = []
+
+
+        self.dut.test_cases[self.name]['media'].append(data)
+
+    def _store_test_data_file_to_db(self, data):
         if self.db_handler:
-            self.db_handler.store_test_data_file_to_db(
-                file_path=str(file_path),
-                testRunId=self.test_run_id,
-                testCase=self.name,
-                dut=self.dut.serial_number,
-                added=datetime.datetime.now(),
-                **kwargs
-            )
+            self.db_handler.store_test_data_file_to_db(**data)
