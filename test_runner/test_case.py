@@ -181,6 +181,10 @@ class TestCase(ABC):
     def handle_error(self, error):
         self.logger.warn("Error at %s: %s", self.name, error)
         self.result_handler(error)
+
+        self.end_time = datetime.datetime.now()
+        self.duration_s = time.monotonic() - self.start_time_monotonic
+
         self.dut.test_cases[self.name].update(
             {
                 "start_time": self.start_time,
