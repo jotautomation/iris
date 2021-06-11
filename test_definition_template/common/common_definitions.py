@@ -36,5 +36,5 @@ def get_my_ip(ext_url):
         return sock.getsockname()[0]
 
 
-# Use here the external url that want's to connec to to Iris
+# Use here the external url that want's to connect to to Iris
 IRIS_IP = get_my_ip(("8.8.8.8", 80))

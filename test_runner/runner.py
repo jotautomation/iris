@@ -118,7 +118,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
     listener_args['database'] = db_handler
 
     # Execute boot_up defined for the test sequence
-    common_definitions.boot_up(logger)
+    common_definitions.boot_up(common_definitions.INSTRUMENTS, logger)
 
     test_positions = {}
     fail_reason_history = ''
@@ -159,14 +159,16 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             if test_control['get_sn_from_ui']:
 
                 dut_sn_values, sequence_name = get_sn_from_ui(dut_sn_queue, logger)
-                common_definitions.prepare_test(common_definitions.INSTRUMENTS, logger)
 
             else:
                 # Or from prepare_test function
-                dut_sn_values, sequence_name = common_definitions.prepare_test(
+                dut_sn_values, sequence_name = common_definitions.indentify_DUTs(
                     common_definitions.INSTRUMENTS, logger
                 )
 
+            common_definitions.prepare_test(
+                common_definitions.INSTRUMENTS, logger, dut_sn_values, sequence_name
+            )
             # Create dut instances
             for test_position, dut_info in dut_sn_values.items():
                 if dut_info is None:

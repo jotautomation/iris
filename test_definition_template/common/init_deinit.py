@@ -1,7 +1,7 @@
 """Initializations and deinitializations"""
 
 
-def boot_up(logger):
+def boot_up(instruments, logger):
     logger.info("Executing initialization")
 
 
@@ -16,9 +16,12 @@ def finalize_test(overallresult, duts, instruments, logger):
     instruments['gaia'].wait_not_ready()
 
 
-def prepare_test(instruments, logger):
+def prepare_test(instruments, logger, dut_sn_values, sequence_name):
     logger.info("Waiting G5 to get ready for next (or first) test run")
     instruments['gaia'].wait_ready()
+
+
+def indentify_DUTs(instruments, logger):
     import uuid
 
     # Figure out DUT sn (probably with code reader), find out what
