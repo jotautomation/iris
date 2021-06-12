@@ -216,7 +216,8 @@ class MessageWebsocketHandler(tornado.websocket.WebSocketHandler):
 
     def initialize(self, message_handlers=None, return_message_handler=None, **kwargs):
         """Initialize is called when tornado.web.Application is created"""
-        if message_handlers:
+
+        if message_handlers is not None:
             message_handlers.append(self.websocket_signal_handler)  # pylint: disable=W0201
 
         self.loop = asyncio.get_event_loop()  # pylint: disable=W0201
