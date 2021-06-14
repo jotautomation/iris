@@ -30,11 +30,18 @@ def indentify_DUTs(instruments, logger):
     # Sequence name is the directory name at test_definitions
     # Here we use testA as an example. Thus you must create
     # the sequence with 'python super_simple_test_runner.py -c testA'
-    return ({
-        "1": {'sn': str(uuid.uuid4())},
-        "2": {'sn': str(uuid.uuid4())},
-        "3": {'sn': str(uuid.uuid4())},
-    }, "testA")
+    return (
+        # DUTs
+        {
+            "1": {'sn': str(uuid.uuid4())},
+            "2": {'sn': str(uuid.uuid4())},
+            "3": {'sn': str(uuid.uuid4())},
+        },
+        # Test sequence
+        "testA",
+        # Operator info
+        {"name": "John Doe"},
+    )
 
 
 def shutdown(instruments, logger):

@@ -24,7 +24,7 @@ def create_report(
     root_items = {}
 
     for key, value in report_dict.items():
-        if not isinstance(value, dict):
+        if not isinstance(value, dict) or key == 'operator' or key == 'tester':
             root_items[key] = value
 
     # Extract each DUT and add to database

@@ -20,6 +20,11 @@ def instrument_initialization(progress):
     _connect_to_db(progress)
 
 
+def get_tester_info():
+    # Tester info
+    return {"name": "First delivery", "type": "G5", "serial": "1234abc"}
+
+
 def handle_instrument_status(progress):
     """Reconnect to instrument, do other error resolving or any other status triggered task.
     Called in the beginning of each test run."""

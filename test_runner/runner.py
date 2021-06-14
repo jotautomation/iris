@@ -74,7 +74,7 @@ def get_sn_from_ui(dut_sn_queue, logger):
             logger.info("Selected test %s", sequence_name)
             break
 
-    return (duts_sn, sequence_name)
+    return (duts_sn, sequence_name, {"name": "Not available"})
 
 
 def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, listener_args):
@@ -158,13 +158,17 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             # DUT sn may come from UI
             if test_control['get_sn_from_ui']:
 
-                dut_sn_values, sequence_name = get_sn_from_ui(dut_sn_queue, logger)
+                (dut_sn_values, sequence_name, operator_info) = get_sn_from_ui(
+                    dut_sn_queue, logger
+                )
 
             else:
                 # Or from prepare_test function
-                dut_sn_values, sequence_name = common_definitions.indentify_DUTs(
-                    common_definitions.INSTRUMENTS, logger
-                )
+                (
+                    dut_sn_values,
+                    sequence_name,
+                    operator_info,
+                ) = common_definitions.indentify_DUTs(common_definitions.INSTRUMENTS, logger)
 
             common_definitions.prepare_test(
                 common_definitions.INSTRUMENTS, logger, dut_sn_values, sequence_name
@@ -178,7 +182,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                         dut_info, test_position
                     )
 
-            results = {}
+            results = {"operator": operator_info, "tester": common_definitions.get_tester_info()}
 
             # Fetch test definitions i.e. import module
             test_definitions = helpers.get_test_definitions(sequence_name, logger)
