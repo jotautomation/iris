@@ -122,7 +122,7 @@ if ARGS.create:
 
     sys.exit(0)
 
-CONTROL = runner.get_test_control()
+CONTROL = runner.get_test_control(LOGGER)
 COMMON_DEFINITIONS = runner.get_common_definitions()
 
 if ARGS.list_applications:

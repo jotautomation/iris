@@ -63,6 +63,7 @@ class ProgressReporter:
             "sequence_name": self.sequence_name,
             "get_sn_from_ui": self.test_control['get_sn_from_ui'],
             "test_sequences": self.test_control['test_sequences'],
+            "test_cases": self.test_control['test_cases'],
         }
 
         if self.overall_result:

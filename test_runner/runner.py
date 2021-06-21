@@ -20,7 +20,20 @@ def get_common_definitions():
     )
 
 
-def get_test_control():
+def get_test_cases(logger):
+
+    test_cases = {}
+    for sequence in get_common_definitions().TEST_SEQUENCES:
+        test_definitions = helpers.get_test_definitions(sequence, logger)
+        test_cases[sequence] = [
+            {'name': t}
+            for t in test_definitions.TESTS
+            if t not in test_definitions.SKIP and '_pre' not in t and '_post' not in t
+        ]
+    return test_cases
+
+
+def get_test_control(logger):
     """Returns default test control dictionary"""
     return {
         'single_run': False,
@@ -35,6 +48,7 @@ def get_test_control():
         'get_sn_from_ui': get_common_definitions().SN_FROM_UI,
         'test_sequences': get_common_definitions().TEST_SEQUENCES,
         'dry_run': False,
+        'test_cases': get_test_cases(logger),
     }
 
 
@@ -42,6 +56,7 @@ def get_sn_from_ui(dut_sn_queue, logger):
     """Returns serial numbers from UI"""
 
     sequence_name = None
+    test_cases = None
     common_definitions = get_common_definitions()
     duts_sn = {
         test_position.name: {'sn': None} for test_position in common_definitions.TEST_POSITIONS
@@ -61,6 +76,9 @@ def get_sn_from_ui(dut_sn_queue, logger):
                     duts_sn[dut]['sn'] = msg[dut]
             if 'sequence' in msg:
                 sequence_name = msg['sequence']
+            if 'testCases' in msg and msg['testCases']:
+
+                test_cases = [t['name'] for t in msg['testCases']]
 
         except (AttributeError, json.decoder.JSONDecodeError):
             pass
@@ -74,7 +92,7 @@ def get_sn_from_ui(dut_sn_queue, logger):
             logger.info("Selected test %s", sequence_name)
             break
 
-    return (duts_sn, sequence_name, {"name": "Not available"})
+    return (duts_sn, sequence_name, {"name": "Not available"}, test_cases)
 
 
 def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, listener_args):
@@ -155,20 +173,23 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
 
                 progress.set_progress(general_state="Prepare", test_positions=test_positions)
 
+            test_cases_override = None
+
             # DUT sn may come from UI
             if test_control['get_sn_from_ui']:
 
-                (dut_sn_values, sequence_name, operator_info) = get_sn_from_ui(
-                    dut_sn_queue, logger
-                )
-
-            else:
-                # Or from prepare_test function
                 (
                     dut_sn_values,
                     sequence_name,
                     operator_info,
-                ) = common_definitions.indentify_DUTs(common_definitions.INSTRUMENTS, logger)
+                    test_cases_override,
+                ) = get_sn_from_ui(dut_sn_queue, logger)
+
+            else:
+                # Or from prepare_test function
+                (dut_sn_values, sequence_name, operator_info,) = common_definitions.indentify_DUTs(
+                    common_definitions.INSTRUMENTS, logger
+                )
 
             common_definitions.prepare_test(
                 common_definitions.INSTRUMENTS, logger, dut_sn_values, sequence_name
@@ -201,6 +222,9 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             # Run all test cases
             for test_case_name in test_case_names:
                 # Loop for testing
+
+                if test_cases_override and test_case_name not in test_cases_override:
+                    continue
 
                 is_pre_test = False
                 if '_pre' in test_case_name:
@@ -413,4 +437,4 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
 
     progress.set_progress(general_state="Shutdown")
 
-    common_definitions.shutdown(common_definitions.INSTRUMENTS)
+    common_definitions.shutdown(common_definitions.INSTRUMENTS, logger)
