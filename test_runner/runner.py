@@ -135,6 +135,9 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
 
     listener_args['database'] = db_handler
 
+    if hasattr(common_definitions, 'listener_args'):
+        common_definitions.listener_args(listener_args)
+
     # Execute boot_up defined for the test sequence
     common_definitions.boot_up(common_definitions.INSTRUMENTS, logger)
 

@@ -161,7 +161,7 @@ if ARGS.report_off:
 DUT_SN_QUEUE = Queue()
 MESSAGE_QUEUE = Queue()
 PROGRESS_QUEUE = Queue()
-LISTENER_ARGS = {'database': None}
+LISTENER_ARGS = {'database': None, 'download_path': None}
 
 RUNNER_THREAD = threading.Thread(
     target=runner.run_test_runner,

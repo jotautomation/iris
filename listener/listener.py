@@ -352,6 +352,7 @@ def create_listener(
             (r"/api/testcontrol", TestRunnerHandler, init),
             (r"/api/testcontrol/([0-9]+)", TestRunnerHandler, init),
             (r"/logs", LogsHandler, init),
+            (r"/api/download/(.*)", tornado.web.StaticFileHandler, {'path': listener_args['download_path']}),
             (
                 r"/api/media/(.*)",
                 MediaFileHandler,
