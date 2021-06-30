@@ -163,6 +163,9 @@ MESSAGE_QUEUE = Queue()
 PROGRESS_QUEUE = Queue()
 LISTENER_ARGS = {'database': None, 'download_path': None}
 
+if hasattr(COMMON_DEFINITIONS, 'listener_args'):
+        COMMON_DEFINITIONS.listener_args(LISTENER_ARGS)
+
 RUNNER_THREAD = threading.Thread(
     target=runner.run_test_runner,
     args=(CONTROL, MESSAGE_QUEUE, PROGRESS_QUEUE, DUT_SN_QUEUE, LISTENER_ARGS),
