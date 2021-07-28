@@ -21,7 +21,7 @@ def prepare_test(instruments, logger, dut_sn_values, sequence_name):
     instruments['gaia'].wait_ready()
 
 
-def indentify_DUTs(instruments, logger):
+def identify_DUTs(instruments, logger):
     import uuid
 
     # Figure out DUT sn (probably with code reader), find out what
