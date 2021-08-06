@@ -185,11 +185,13 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                     test_cases_override,
                 ) = get_sn_from_ui(dut_sn_queue, logger)
 
+                sequence_name_from_identify = common_definitions.identify_DUTs(
+                    dut_sn_values, common_definitions.INSTRUMENTS, logger
+                )
+
                 # If sequence was not selected, get it from identify_DUTs
                 if sequence_name is None:
-                    common_definitions.identify_DUTs(
-                        dut_sn_values, common_definitions.INSTRUMENTS, logger
-                    )
+                    sequence_name = sequence_name_from_identify
 
             else:
                 # Or from identify_DUTs function
