@@ -185,10 +185,16 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                     test_cases_override,
                 ) = get_sn_from_ui(dut_sn_queue, logger)
 
+                # If sequence was not selected, get it from identify_DUTs
+                if sequence_name is None:
+                    common_definitions.identify_DUTs(
+                        dut_sn_values, common_definitions.INSTRUMENTS, logger
+                    )
+
             else:
-                # Or from prepare_test function
+                # Or from identify_DUTs function
                 (dut_sn_values, sequence_name, operator_info,) = common_definitions.identify_DUTs(
-                    common_definitions.INSTRUMENTS, logger
+                    None, common_definitions.INSTRUMENTS, logger
                 )
 
             common_definitions.prepare_test(
