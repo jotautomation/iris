@@ -431,16 +431,21 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             overall_result=dut.pass_fail_result,
             sequence_name=sequence_name,
         )
-        if not test_control['report_off']:
-            common_definitions.create_report(
-                json.dumps(results, indent=4, default=str),
-                results,
-                test_positions,
-                test_definitions.PARAMETERS,
-                db_handler,
-                common_definitions,
-                progress,
-            )
+        try:
+            if not test_control['report_off']:
+                common_definitions.create_report(
+                    json.dumps(results, indent=4, default=str),
+                    results,
+                    test_positions,
+                    test_definitions.PARAMETERS,
+                    db_handler,
+                    common_definitions,
+                    progress,
+                )
+        except Exception as e:
+            progress.set_progress(general_state="Error")
+            send_message("Error while generating a test report")
+            send_message(str(e))
 
         if test_control['single_run']:
             test_control['terminate'] = True
