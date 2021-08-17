@@ -169,7 +169,8 @@ class ProgressHandler(IrisRequestHandler):
     def handle_get(self, host, user, *args):
         """Returns current progress as json"""
 
-        return {'progress': self.test_control['progress']}
+
+        return json.dumps({'progress': self.test_control['progress']}, default=str)
 
 
 class UiEntryHandler(tornado.web.StaticFileHandler):
@@ -352,7 +353,11 @@ def create_listener(
             (r"/api/testcontrol", TestRunnerHandler, init),
             (r"/api/testcontrol/([0-9]+)", TestRunnerHandler, init),
             (r"/logs", LogsHandler, init),
-            (r"/api/download/(.*)", tornado.web.StaticFileHandler, {'path': listener_args['download_path']}),
+            (
+                r"/api/download/(.*)",
+                tornado.web.StaticFileHandler,
+                {'path': listener_args['download_path']},
+            ),
             (
                 r"/api/media/(.*)",
                 MediaFileHandler,
