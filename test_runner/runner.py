@@ -161,8 +161,10 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
 
             if db_handler:
                 db_handler.clean_db()
-                progress.set_progress(statistics=db_handler.get_statistics())
-
+                if isinstance(db_handler, MagicMock):
+                    progress.set_progress(statistics={'statistics': 'mocked'})
+                else:
+                    progress.set_progress(statistics=db_handler.get_statistics())
             # Create TestPosition instances
             for position in common_definitions.TEST_POSITIONS:
                 test_positions[position.name] = position
