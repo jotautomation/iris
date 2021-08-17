@@ -13,6 +13,8 @@ class TestPosition:
         self.step = None
         self.status = 'wait'
         self.dut = None
+        self.test_case_instances = {}
+        self.stop_testing = False
 
         if not self.test_status:
             self.test_status = "Idle"
