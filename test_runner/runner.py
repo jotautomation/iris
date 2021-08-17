@@ -154,7 +154,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
 
         try:
             background_pre_tasks = {}
-            background_post_tasks = {}
+            background_post_tasks = []
 
             progress.set_progress(
                 general_state="Prepare", overall_result=None, test_positions=test_positions
@@ -287,10 +287,10 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
 
                     # Create test case instance
                     if test_case_name not in test_position_instance.test_case_instances:
+
                         test_position_instance.test_case_instances[
                             test_case_name
                         ] = new_test_instance(test_case_name, test_position_instance)
-
                     test_instance = test_position_instance.test_case_instances[test_case_name]
                     test_instance.test_position = test_position_instance
                     test_instance.test_run_id = test_run_id
@@ -331,14 +331,12 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                             )
                             test_position_instance.test_status = "Idle"
 
-                            # Start post task and store it to dictionary
-                            if test_case_name not in background_post_tasks:
-                                background_post_tasks[test_case_name] = {}
+                            # Start post task and store it to list
 
-                            background_post_tasks[test_case_name][
-                                test_position_name
-                            ] = threading.Thread(target=test_instance.run_post_test)
-                            background_post_tasks[test_case_name][test_position_name].start()
+                            bg_task = threading.Thread(target=test_instance.run_post_test)
+                            bg_task.start()
+
+                            background_post_tasks.append(bg_task)
 
                     except Exception as err:
 
@@ -373,10 +371,12 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                             sequence_name=sequence_name,
                         )
 
+            for task in background_post_tasks:
+                task.join()
+
             for test_position_name, test_position_instance in test_positions.items():
 
                 dut = test_position_instance.dut
-
                 results[dut.serial_number] = test_position_instance.dut.test_cases
 
                 if not test_position_instance.dut:
@@ -425,6 +425,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             pass
         finally:
             pass
+
         progress.set_progress(
             general_state="Create test report",
             test_positions=test_positions,
