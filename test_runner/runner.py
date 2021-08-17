@@ -143,6 +143,9 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
     fail_reason_count = 0
     pass_count = 0
 
+    for position in common_definitions.TEST_POSITIONS:
+        test_positions[position.name] = position
+
     # Start the actual test loop
     while not test_control['terminate']:
         # Wait until you are allowed to run again i.e. pause
@@ -165,9 +168,6 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                     progress.set_progress(statistics={'statistics': 'mocked'})
                 else:
                     progress.set_progress(statistics=db_handler.get_statistics())
-            # Create TestPosition instances
-            for position in common_definitions.TEST_POSITIONS:
-                test_positions[position.name] = position
 
             # Clear test positions
             for position_name, position in test_positions.items():
