@@ -48,8 +48,14 @@ PARSER.add_argument(
 PARSER.add_argument(
     "-m",
     "--mock",
-    help=r"""Replaces listed instruments with mock objects. Usage: iris.py -m INSTRUMENT1 INSTRUMENT2 ...
-instrument_initialization() is allowed to fail(silently!). """,
+    help=r"""Replaces listed instruments with mock objects. Usage: iris.py -m INSTRUMENT1 INSTRUMENT2 ...""",
+    nargs='+'
+)
+
+PARSER.add_argument(
+    "-i",
+    "--inverse-mock",
+    help=r"""Replaces all but listed instruments with mock objects. Usage: iris.py -m INSTRUMENT1 INSTRUMENT2 ...""",
     nargs='+'
 )
 
@@ -151,6 +157,9 @@ if ARGS.dry_run:
 
 if ARGS.mock:
     CONTROL['mock'] = ARGS.mock
+
+if ARGS.inverse_mock:
+    CONTROL['inverse_mock'] = ARGS.inverse_mock
 
 if ARGS.single_run:
     CONTROL['single_run'] = True

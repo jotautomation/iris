@@ -127,6 +127,13 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                 common_definitions.INSTRUMENTS[instrument] = MagicMock()
                 progress.set_instrument_status(instrument, 'MagicMock')
 
+    elif 'inverse_mock' in test_control:
+
+        for instrument in common_definitions.INSTRUMENTS.keys():
+            if instrument not in test_control['inverse_mock']:
+                common_definitions.INSTRUMENTS[instrument] = MagicMock()
+                progress.set_instrument_status(instrument, 'MagicMock')
+
     logger.info("Initializing instruments")
 
     # Initialize all instruments
