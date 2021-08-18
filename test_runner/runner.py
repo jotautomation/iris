@@ -110,6 +110,10 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
 
     progress.set_progress(general_state="Boot")
 
+    for instrument in common_definitions.INSTRUMENTS.keys():
+        progress.set_instrument_status(instrument, 'Not initialized')
+
+
     if test_control['dry_run']:
 
         for instrument in common_definitions.INSTRUMENTS.keys():
@@ -118,18 +122,17 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
 
     elif 'mock' in test_control:
 
-        try:
-            common_definitions.instrument_initialization(progress)
-        except Exception as e:
-            pass
-
         for instrument in common_definitions.INSTRUMENTS.keys():
             if instrument in test_control['mock']:
                 common_definitions.INSTRUMENTS[instrument] = MagicMock()
                 progress.set_instrument_status(instrument, 'MagicMock')
-    else:
-        # Initialize all instruments
-        common_definitions.instrument_initialization(progress)
+
+    logger.info("Initializing instruments")
+
+    # Initialize all instruments
+    common_definitions.handle_instrument_status(progress, logger)
+
+    logger.info("All instruments initialized")
 
     db_handler = common_definitions.INSTRUMENTS[common_definitions.DB_HANDLER_NAME]
 
@@ -156,11 +159,15 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             background_pre_tasks = {}
             background_post_tasks = []
 
+            logger.info("Checking status of instruments")
+
             progress.set_progress(
-                general_state="Prepare", overall_result=None, test_positions=test_positions
+                general_state="Checking status of instruments", overall_result=None, test_positions=test_positions
             )
 
-            common_definitions.handle_instrument_status(progress)
+            logger.info("All instruments OK")
+
+            common_definitions.handle_instrument_status(progress, logger)
 
             if db_handler:
                 db_handler.clean_db()
