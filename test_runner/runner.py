@@ -43,6 +43,7 @@ def get_test_control(logger):
         'loop': None,
         'retest_on_fail': 0,
         'terminate': False,
+        'abort': False,
         'report_off': False,
         'run': threading.Event(),
         'get_sn_from_ui': get_common_definitions().SN_FROM_UI,
@@ -113,7 +114,6 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
     for instrument in common_definitions.INSTRUMENTS.keys():
         progress.set_instrument_status(instrument, 'Not initialized')
 
-
     if test_control['dry_run']:
 
         for instrument in common_definitions.INSTRUMENTS.keys():
@@ -165,11 +165,14 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
         try:
             background_pre_tasks = {}
             background_post_tasks = []
+            test_control['abort'] = False
 
             logger.info("Checking status of instruments")
 
             progress.set_progress(
-                general_state="Checking status of instruments", overall_result=None, test_positions=test_positions
+                general_state="Checking status of instruments",
+                overall_result=None,
+                test_positions=test_positions,
             )
 
             logger.info("All instruments OK")
@@ -246,6 +249,12 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             # Run all test cases
             for test_case_name in test_case_names:
                 # Loop for testing
+
+                if test_control['abort']:
+
+                    send_message("Test aborted")
+                    logger.warning("Test aborted")
+                    continue
 
                 if test_cases_override and test_case_name not in test_cases_override:
                     continue
@@ -439,6 +448,11 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             pass
         finally:
             pass
+
+        # Don't create report if aborted
+        if test_control['abort']:
+            common_definitions.test_aborted(common_definitions.INSTRUMENTS, logger)
+            continue
 
         progress.set_progress(
             general_state="Create test report",
