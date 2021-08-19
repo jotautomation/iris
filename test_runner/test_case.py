@@ -136,6 +136,24 @@ class TestCase(ABC):
                 if error:
                     case['result'] = 'error'
                     case['error'] = error
+                    self.dut.pass_fail_result = 'error'
+                    if self.flow_control == FlowControl.STOP_ON_FAIL:
+                        self.stop_testing()
+
+    def check_measurements_vs_limits(self):
+        for limit_test_case_name, limit_test_case in self.limits.items():
+            for limit in limit_test_case:
+                if (
+                    limit_test_case_name not in self.dut.test_cases
+                    or limit
+                    not in self.dut.test_cases[limit_test_case_name]['measurements'].keys()
+                ):
+                    self.dut.pass_fail_result = 'error'
+                    self.dut.test_cases[limit_test_case_name]['result'] = 'error'
+                    self.dut.test_cases[limit_test_case_name][
+                        'error'
+                    ] = f'Measurement "{limit}" missing'
+
                     if self.flow_control == FlowControl.STOP_ON_FAIL:
                         self.stop_testing()
 
@@ -158,6 +176,7 @@ class TestCase(ABC):
         self.post_test()
 
         self.evaluate_results()
+        self.check_measurements_vs_limits()
 
         if self.dut.pass_fail_result:
             self.clean_pass()
@@ -226,11 +245,9 @@ class TestCase(ABC):
 
         self._store_test_data_file_to_db(data)
 
-
         # Store data to test cases for reporting
         if 'media' not in self.dut.test_cases[self.name]:
             self.dut.test_cases[self.name]['media'] = []
-
 
         self.dut.test_cases[self.name]['media'].append(data)
 
