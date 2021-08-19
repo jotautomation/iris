@@ -254,7 +254,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
 
                     send_message("Test aborted")
                     logger.warning("Test aborted")
-                    continue
+                    break
 
                 if test_cases_override and test_case_name not in test_cases_override:
                     continue
