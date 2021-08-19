@@ -142,6 +142,7 @@ if ARGS.list_applications:
             # Let the base class default method raise the TypeError
             return json.JSONEncoder.default(self, obj)
 
+    # Todo: Initialization not working like this anymore
     COMMON_DEFINITIONS.instrument_initialization()
 
     client = COMMON_DEFINITIONS.INSTRUMENTS['gaia']
