@@ -141,13 +141,19 @@ class TestCase(ABC):
                         self.stop_testing()
 
     def check_measurements_vs_limits(self):
+
         for limit_test_case_name, limit_test_case in self.limits.items():
             for limit in limit_test_case:
+
+                if 'optional' in limit_test_case[limit] and limit_test_case[limit]['optional']:
+                    continue
+
                 if (
                     limit_test_case_name not in self.dut.test_cases
                     or limit
                     not in self.dut.test_cases[limit_test_case_name]['measurements'].keys()
                 ):
+
                     self.dut.pass_fail_result = 'error'
                     self.dut.test_cases[limit_test_case_name]['result'] = 'error'
                     self.dut.test_cases[limit_test_case_name][
