@@ -149,12 +149,13 @@ class TestCase(ABC):
                     continue
 
                 if (
-                    limit_test_case_name not in self.dut.test_cases
-                    or limit
+                    limit_test_case_name in self.dut.test_cases
+                    and limit
                     not in self.dut.test_cases[limit_test_case_name]['measurements'].keys()
                 ):
 
                     self.dut.pass_fail_result = 'error'
+
                     self.dut.test_cases[limit_test_case_name]['result'] = 'error'
                     self.dut.test_cases[limit_test_case_name][
                         'error'
