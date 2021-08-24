@@ -18,6 +18,7 @@ import pathlib
 import yaml
 import logging.config
 
+
 PORT = 4321
 
 PARSER = argparse.ArgumentParser(description="Iris test sequencer.")
@@ -130,6 +131,11 @@ if ARGS.create:
 
 CONTROL = runner.get_test_control(LOGGER)
 COMMON_DEFINITIONS = runner.get_common_definitions()
+SETTINGS_FILE = pathlib.Path('station_settings.yaml')
+
+if SETTINGS_FILE.is_file():
+    with SETTINGS_FILE.open() as _f:
+        COMMON_DEFINITIONS.SETTINGS = yaml.safe_load(_f.read())
 
 if ARGS.list_applications:
     # Print available applications and actions
