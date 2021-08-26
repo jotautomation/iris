@@ -115,6 +115,7 @@ class TestCase(ABC):
                 case['measurements'][measurement_name]["result"] = pass_fail_result
 
             except Exception as exp:
+                case['result'] = 'error'
                 case['measurements'][measurement_name]["unit"] = unit
                 case['measurements'][measurement_name]["limit"] = limit
                 case['measurements'][measurement_name]["result"] = "ErrorOnLimits"
@@ -122,8 +123,8 @@ class TestCase(ABC):
 
             finally:
                 if not pass_fail_result:
-
-                    self.dut.pass_fail_result = False
+                    if self.pass_fail_result != 'error':
+                        self.dut.pass_fail_result = False
 
                     self.dut.test_cases[self.name]['result'] = False
 
@@ -133,12 +134,13 @@ class TestCase(ABC):
                     if self.flow_control == FlowControl.STOP_ON_FAIL:
                         self.stop_testing()
 
-                if error:
-                    case['result'] = 'error'
-                    case['error'] = error
-                    self.dut.pass_fail_result = 'error'
-                    if self.flow_control == FlowControl.STOP_ON_FAIL:
-                        self.stop_testing()
+        if error:
+
+            case['result'] = 'error'
+            case['error'] = error
+            self.dut.pass_fail_result = 'error'
+            if self.flow_control == FlowControl.STOP_ON_FAIL:
+                self.stop_testing()
 
     def check_measurements_vs_limits(self):
 
@@ -205,6 +207,7 @@ class TestCase(ABC):
         self.logger.debug("Post_test done at %s", self.name)
 
     def handle_error(self, error):
+
         self.logger.warn("Error at %s: %s", self.name, error)
         self.result_handler(error)
 
