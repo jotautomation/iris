@@ -123,7 +123,7 @@ class TestCase(ABC):
 
             finally:
                 if not pass_fail_result:
-                    if self.pass_fail_result != 'error':
+                    if hasattr(self, 'pass_fail_result') and self.pass_fail_result != 'error':
                         self.dut.pass_fail_result = False
 
                     self.dut.test_cases[self.name]['result'] = False
@@ -143,25 +143,22 @@ class TestCase(ABC):
                 self.stop_testing()
 
     def check_measurements_vs_limits(self):
+        if self.name in self.limits:
 
-        for limit_test_case_name, limit_test_case in self.limits.items():
-            for limit in limit_test_case:
+            for limit in self.limits[self.name]:
 
-                if 'optional' in limit_test_case[limit] and limit_test_case[limit]['optional']:
+                if 'optional' in self.limits[self.name] and self.limits[self.name]['optional']:
                     continue
 
                 if (
-                    limit_test_case_name in self.dut.test_cases
-                    and limit
-                    not in self.dut.test_cases[limit_test_case_name]['measurements'].keys()
+                    self.name in self.dut.test_cases
+                    and limit not in self.dut.test_cases[self.name]['measurements'].keys()
                 ):
 
                     self.dut.pass_fail_result = 'error'
 
-                    self.dut.test_cases[limit_test_case_name]['result'] = 'error'
-                    self.dut.test_cases[limit_test_case_name][
-                        'error'
-                    ] = f'Measurement "{limit}" missing'
+                    self.dut.test_cases[self.name]['result'] = 'error'
+                    self.dut.test_cases[self.name]['error'] = f'Measurement "{limit}" missing'
 
                     if self.flow_control == FlowControl.STOP_ON_FAIL:
                         self.stop_testing()
