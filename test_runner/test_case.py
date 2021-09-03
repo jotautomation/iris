@@ -41,7 +41,7 @@ class TestCase(ABC):
         self.db_handler = db_handler
         self.my_ip = common_definitions.IRIS_IP
         # Initialize measurement dictionary
-        self.dut.test_cases[self.name] = {'result': True, 'measurements': {}}
+        self.dut.test_cases[self.name] = {'id': id(self), 'result': True, 'measurements': {}}
 
     def show_operator_instructions(self, message, append=False):
         self.report_progress.show_operator_instructions(message, append)
@@ -109,6 +109,9 @@ class TestCase(ABC):
                     )
 
                     unit = self.limits[self.name][measurement_name].get('unit', '')
+
+                    if 'lambda measurement:' in limit:
+                        limit = limit.split(':')[-1].strip()
 
                 case['measurements'][measurement_name]["unit"] = unit
                 case['measurements'][measurement_name]["limit"] = limit

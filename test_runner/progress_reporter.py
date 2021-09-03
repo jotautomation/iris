@@ -50,11 +50,18 @@ class ProgressReporter:
 
         if self.test_positions:
             for position_name, position_value in self.test_positions.items():
+                dut_class = None
+                if position_value.dut is None:
+                    if position_value.previous_dut:
+                        dut_class = position_value.previous_dut
+                else:
+                    dut_class = position_value.dut.get_dut_dict()
                 positions_dict[position_name] = {
                     'step': position_value.step,
                     'status': position_value.status,
                     'sn': None if position_value.dut is None else position_value.dut.serial_number,
                     'test_status': str(position_value.test_status),
+                    'dut_class': dut_class
                 }
 
         progress_json = {
