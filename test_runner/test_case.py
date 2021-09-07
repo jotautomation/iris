@@ -112,6 +112,8 @@ class TestCase(ABC):
 
                     if 'lambda measurement:' in limit:
                         limit = limit.split(':')[-1].strip()
+                        if limit.endswith('},'):
+                            limit = limit[:-2]
 
                 case['measurements'][measurement_name]["unit"] = unit
                 case['measurements'][measurement_name]["limit"] = limit
