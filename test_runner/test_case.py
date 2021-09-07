@@ -128,7 +128,11 @@ class TestCase(ABC):
 
             finally:
                 if not pass_fail_result:
-                    if hasattr(self, 'pass_fail_result') and self.pass_fail_result != 'error':
+                    if hasattr(self, 'pass_fail_result'):
+
+                        if self.pass_fail_result != 'error':
+                            self.dut.pass_fail_result = False
+                    else:
                         self.dut.pass_fail_result = False
 
                     self.dut.test_cases[self.name]['result'] = False
