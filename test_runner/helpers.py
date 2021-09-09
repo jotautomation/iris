@@ -14,6 +14,9 @@ def import_by_name(name, error_message, logger):
     try:
         imp = importlib.import_module(name)
 
+        if 'common' not in name:
+            importlib.reload(imp)
+
         # TODO: This hides also errors on nested imports
     except ImportError as err:
         logger.warning(err)
