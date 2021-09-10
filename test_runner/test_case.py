@@ -110,11 +110,6 @@ class TestCase(ABC):
 
                     unit = self.limits[self.name][measurement_name].get('unit', '')
 
-                    if 'lambda measurement:' in limit:
-                        limit = limit.split(':')[-1].strip()
-                        if limit.endswith('},'):
-                            limit = limit[:-2]
-
                 case['measurements'][measurement_name]["unit"] = unit
                 case['measurements'][measurement_name]["limit"] = limit
                 case['measurements'][measurement_name]["result"] = pass_fail_result
