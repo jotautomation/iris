@@ -68,6 +68,13 @@ PARSER.add_argument(
 )
 
 PARSER.add_argument(
+    "-b",
+    "--no-browser",
+    help="Don't try to open web browser.",
+    action="store_true",
+)
+
+PARSER.add_argument(
     "--list-applications",
     "-a",
     help="Lists available application on the connected Gaia tester (G5 or other). Gaia instrument must be defined and available.",
@@ -227,6 +234,10 @@ MESSAGE_THREAD.start()
 if ARGS.listener:
     if ARGS.port:
         PORT = ARGS.port
+    if not ARGS.no_browser:
+        import webbrowser
+
+        webbrowser.open("http://localhost:" + str(PORT))
 
     listener.create_listener(
         PORT,
