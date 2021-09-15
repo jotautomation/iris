@@ -452,7 +452,12 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
         except exceptions.IrisError as e:
             # TODO: write error to report
             logger.exception("Error on testsequence")
-            raise
+            continue
+        except Exception as exp:
+            # TODO: write error to report
+            logger.exception("Error on testsequence")
+            continue
+
         else:
             pass
         finally:
