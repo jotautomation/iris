@@ -231,14 +231,14 @@ class TestCase(ABC):
     def store_test_data_file(self, source_file_path, dest_name, **kwargs):
         from common.test_report_writer import create_report_path
 
-        dest_name = (
+        unique_dest_name = (
             self.name + '_' + self.dut.serial_number + '_' + self.test_run_id + '_' + dest_name
         )
 
         report_path = create_report_path()
         dest_path = Path(report_path, 'file_attachments')
         dest_path.mkdir(parents=True, exist_ok=True)
-        dest_path = dest_path / dest_name
+        dest_path = dest_path / unique_dest_name
         Path(source_file_path).rename(dest_path)
 
         data = {
