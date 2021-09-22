@@ -6,8 +6,9 @@ class Dut:
         self.patch = patch
         self.additional_info = additional_info
         self.test_cases = {}
-        self.pass_fail_result = True
+        self.pass_fail_result = 'pass'
         self.failed_steps = []
+        self.error_steps = []
 
     def get_dut_dict(self):
 
@@ -20,4 +21,5 @@ class Dut:
             'test_cases': self.test_cases,
             'result': self.pass_fail_result,
             'failed_steps': self.failed_steps,
+            'error_steps': self.error_steps,
         }

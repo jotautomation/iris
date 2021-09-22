@@ -414,7 +414,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
 
                     send_message(f"{dut.serial_number}: ERROR: " + ', '.join(errors))
                     test_position_instance.test_status = 'error'
-                elif dut.pass_fail_result:
+                elif dut.pass_fail_result == 'pass':
                     send_message(f"{dut.serial_number}: PASSED")
                     test_position_instance.test_status = 'pass'
                     pass_count = pass_count + 1

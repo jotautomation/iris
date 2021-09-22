@@ -41,7 +41,7 @@ class TestCase(ABC):
         self.db_handler = db_handler
         self.my_ip = common_definitions.IRIS_IP
         # Initialize measurement dictionary
-        self.dut.test_cases[self.name] = {'id': id(self), 'result': True, 'measurements': {}}
+        self.dut.test_cases[self.name] = {'id': id(self), 'result': 'pass', 'measurements': {}}
 
     def show_operator_instructions(self, message, append=False):
         self.report_progress.show_operator_instructions(message, append)
@@ -90,7 +90,7 @@ class TestCase(ABC):
         for measurement_name, measurement_dict in self.dut.test_cases[self.name][
             'measurements'
         ].items():
-            pass_fail_result = True
+            pass_fail_result = 'pass'
             limit = None
             unit = None
             try:
@@ -104,9 +104,9 @@ class TestCase(ABC):
                         inspect.getsource(self.limits[self.name][measurement_name]['limit']),
                     )
 
-                    pass_fail_result = self.limits[self.name][measurement_name]['limit'](
+                    pass_fail_result = 'pass' if self.limits[self.name][measurement_name]['limit'](
                         measurement_value
-                    )
+                    ) else 'fail'
 
                     unit = self.limits[self.name][measurement_name].get('unit', '')
 
@@ -122,29 +122,57 @@ class TestCase(ABC):
                 case['measurements'][measurement_name]["error"] = str(type(exp)) + ': ' + str(exp)
 
             finally:
-                if not pass_fail_result:
-                    if hasattr(self, 'pass_fail_result'):
+                self.set_pass_fail_result(pass_fail_result)
 
-                        if self.pass_fail_result != 'error':
-                            self.dut.pass_fail_result = False
-                    else:
-                        self.dut.pass_fail_result = False
-
-                    self.dut.test_cases[self.name]['result'] = False
-
-                    if self.name not in self.dut.failed_steps:
-                        self.dut.failed_steps.append(self.name)
-
-                    if self.flow_control == FlowControl.STOP_ON_FAIL:
-                        self.stop_testing()
 
         if error:
 
             case['result'] = 'error'
             case['error'] = error
-            self.dut.pass_fail_result = 'error'
+            self.set_pass_fail_result('error')
+
+
+    def set_pass_fail_result(self, result):
+        # Result must be set for both test case and DUT
+        # If any of the test cases is fail/error, the result of DUT is fail/error.
+
+        def __set_result(target):
+            if target == 'error':
+                # If result is set to error, it must stay on error
+                return
+            elif target == 'fail':
+                if target == 'error':
+                    # From 'fail' go only to 'error'
+                    target = result
+            else:
+                # From all other results ('pass', 'NA') go to any other result
+                target = result
+
+            return target
+
+        # Set result for test case
+        new_result = __set_result(self.dut.test_cases[self.name]['result'])
+        self.dut.test_cases[self.name]['result'] = new_result
+
+        # Set result for DUT
+        if not hasattr(self, 'pass_fail_result'):
+            self.dut.pass_fail_result = result
+        else:
+            __set_result(self.dut.pass_fail_result)
+
+        if result != 'pass':
+
             if self.flow_control == FlowControl.STOP_ON_FAIL:
                 self.stop_testing()
+
+            if result == 'fail':
+                if self.name not in self.dut.failed_steps:
+                    self.dut.failed_steps.append(self.name)
+
+            if result == 'error':
+                if self.name not in self.dut.error_steps:
+                    self.dut.error_steps.append(self.name)
+
 
     def check_measurements_vs_limits(self):
         if self.name in self.limits:

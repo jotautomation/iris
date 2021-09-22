@@ -8,7 +8,7 @@ def boot_up(instruments, logger):
 def finalize_test(overallresult, duts, instruments, logger):
     logger.info("Testing ready. Release DUT(s) on Gaia")
 
-    if overallresult:
+    if overallresult == 'pass':
         instruments['gaia'].state_triggers['ReleasePass']()
     else:
         instruments['gaia'].state_triggers['ReleaseFail']()
@@ -21,7 +21,7 @@ def prepare_test(instruments, logger, dut_sn_values, sequence_name):
     instruments['gaia'].wait_ready()
 
 
-def identify_DUTs(instruments, logger):
+def identify_DUTs(dut_sn, instruments, logger):
     import uuid
 
     # Figure out DUT sn (probably with code reader), find out what
