@@ -8,8 +8,9 @@ import pathlib
 """
 To publish:
 1. Make sure you have all the dependencies (Activate virtual env. Import Docker will fail silently, if missing!)
-2. python setup.py bdist_wheel
-3. twine upload dist/*
+2. Set correct version number to this file
+3. python setup.py bdist_wheel
+4. twine upload dist/*
 
 """
 
