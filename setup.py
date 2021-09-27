@@ -54,7 +54,7 @@ get_ui()
 
 setup(
     name="jot-iris",
-    version="1.18.1",
+    version="1.18.2",
     license="MIT License",
     author="JOT Automation Ltd.",
     author_email="rami.rahikkala@jotautomation.com",
@@ -81,6 +81,7 @@ setup(
         "colorama",
         "mock",
         "pymongo",
+        "bcrypt"
     ],
     classifiers=[
         "Programming Language :: Python :: 3",

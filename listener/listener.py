@@ -9,6 +9,7 @@ import asyncio
 import tornado.web
 import tornado.websocket
 from listener.logs_web_socket import LogsWebSocketHandler
+from listener.auth import authenticate, get_cookie_secret
 
 RESP_CONTENT_TYPE = 'application/vnd.siren+json; charset=UTF-8'
 
@@ -86,6 +87,15 @@ class IrisRequestHandler(tornado.web.RequestHandler):
         self.set_status(204)
         self.finish()
 
+    def get_current_user(self):
+        print("Get current user")
+        cur_user = self.get_secure_cookie("user")
+        print("Current user: " + str(cur_user))
+        if cur_user:
+            return cur_user.decode()
+        self.clear_cookie("user")
+        return "Operator"
+
 
 class NoCacheStaticFileHandler(tornado.web.StaticFileHandler):
     def set_extra_headers(self, path):
@@ -101,6 +111,15 @@ class ApiRootHandler(IrisRequestHandler):
 
     def handle_post(self, json_args, host, user, *args):  # pylint: disable=W0613
         """Handle /api post"""
+
+
+class LoginHandler(IrisRequestHandler):
+    def handle_post(self, json_args, host, user, *args):
+        auth = authenticate(json_args['user'], json_args['password'])
+        if auth:
+            self.set_secure_cookie("user", json_args['user'], expires_days=1)
+        else:
+            raise tornado.web.HTTPError(422, "Wrong username / password")
 
 
 class TestRunnerHandler(IrisRequestHandler):
@@ -168,7 +187,6 @@ class ProgressHandler(IrisRequestHandler):
 
     def handle_get(self, host, user, *args):
         """Returns current progress as json"""
-
 
         return json.dumps({'progress': self.test_control['progress']}, default=str)
 
@@ -243,6 +261,13 @@ class MessageWebsocketHandler(tornado.websocket.WebSocketHandler):
         """Called when websocket is opened"""
 
         pass
+
+    def get_current_user(self):
+        cur_user = self.get_secure_cookie("user")
+        if cur_user:
+            return cur_user.decode()
+        self.clear_cookie("user")
+        return "Operator"
 
     def on_close(self):
         """Called when websocket is closed"""
@@ -340,6 +365,7 @@ def create_listener(
                 {'return_message_handler': return_message_handler},
             ),
             (r"/api", ApiRootHandler, init),
+            (r"/login", LoginHandler, init),
             (r"/api/duts", DutsHandler, init),
             (r"/api/history/search_bar_items", HistorySearchItems, init),
             (r"/api/history/search", SearchHistoryHandler, init),
@@ -365,7 +391,8 @@ def create_listener(
             ),
             (r"/(.*\.(js|json|html|css))", tornado.web.StaticFileHandler, {'path': ui_path}),
             (r"/(.*)", UiEntryHandler, {'path': ui_path, "default_filename": "index.html"}),
-        ]
+        ],
+        cookie_secret=get_cookie_secret(),
     )
 
     app.listen(port)
