@@ -163,8 +163,6 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
         logger.info("Start new test run")
 
         try:
-            background_pre_tasks = {}
-            background_post_tasks = []
             test_control['abort'] = False
 
             logger.info("Checking status of instruments")
@@ -246,27 +244,30 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             start_time_monotonic = time.monotonic()
             test_run_id = str(start_time_epoch).replace('.', '_')
 
-            # Run all test cases
-            for test_case_name in test_case_names:
-                # Loop for testing
+            background_test_runs = []
 
-                if test_control['abort']:
+            def parallel_run(test_position_name, test_position_instance):
+                background_pre_tasks = {}
+                background_post_tasks = []
 
-                    send_message("Test aborted")
-                    logger.warning("Test aborted")
-                    break
+                # Run all test cases
+                for test_case_name in test_case_names:
+                    # Loop for testing
 
-                if test_cases_override and test_case_name not in test_cases_override:
-                    continue
+                    if test_control['abort']:
 
-                is_pre_test = False
-                if '_pre' in test_case_name:
-                    is_pre_test = True
+                        send_message("Test aborted")
+                        logger.warning("Test aborted")
+                        break
 
-                test_case_name = test_case_name.replace('_pre', '').replace('_pre', '')
+                    if test_cases_override and test_case_name not in test_cases_override:
+                        continue
 
-                # Run test cases for each DUT in test position
-                for test_position_name, test_position_instance in test_positions.items():
+                    is_pre_test = False
+                    if '_pre' in test_case_name:
+                        is_pre_test = True
+
+                    test_case_name = test_case_name.replace('_pre', '').replace('_pre', '')
 
                     # Set sn to be none, if you don't want to run any test_case_names for the test position
                     # but want to keep showing the position on the UI
@@ -394,8 +395,20 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                             sequence_name=sequence_name,
                         )
 
-            for task in background_post_tasks:
-                task.join()
+                for task in background_post_tasks:
+                    task.join()
+
+            # Run test cases for each DUT in test position
+            for test_position_name, test_position_instance in test_positions.items():
+
+                background_test_run = threading.Thread(
+                    target=parallel_run, args=(test_position_name, test_position_instance)
+                )
+                background_test_run.start()
+                background_test_runs.append(background_test_run)
+
+            for test_run in background_test_runs:
+                test_run.join()
 
             for test_position_name, test_position_instance in test_positions.items():
 
