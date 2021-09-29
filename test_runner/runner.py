@@ -398,32 +398,38 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                 for task in background_post_tasks:
                     task.join()
 
-            if common_definitions.PARALLEL_EXECUTION == 'PARALLEL':
-                # Run test cases for each DUT in test position fully parallel
-                for test_position_name, test_position_instance in test_positions.items():
+            loop_testing = common_definitions.LOOP_EXECUTION == 'CONTINUOUS'
 
-                    background_test_run = threading.Thread(
-                        target=parallel_run, args=(test_position_name, test_position_instance)
-                    )
-                    background_test_run.start()
-                    background_test_runs.append(background_test_run)
+            while loop_testing:
+                if common_definitions.PARALLEL_EXECUTION == 'PARALLEL':
+                    # Run test cases for each DUT in test position fully parallel
+                    for test_position_name, test_position_instance in test_positions.items():
 
-                for test_run in background_test_runs:
-                    test_run.join()
+                        background_test_run = threading.Thread(
+                            target=parallel_run, args=(test_position_name, test_position_instance)
+                        )
+                        background_test_run.start()
+                        background_test_runs.append(background_test_run)
 
-            elif common_definitions.PARALLEL_EXECUTION == 'PER_DUT':
+                    for test_run in background_test_runs:
+                        test_run.join()
 
-                # Run test cases for each DUT so that all test cases are run first for one DUT and
-                # then continue to another
+                elif common_definitions.PARALLEL_EXECUTION == 'PER_DUT':
 
-                for test_position_name, test_position_instance in test_positions.items():
-                    parallel_run(test_position_name, test_position_instance)
+                    # Run test cases for each DUT so that all test cases are run first for one DUT and
+                    # then continue to another
 
-            elif common_definitions.PARALLEL_EXECUTION == 'PER_TEST_CASE':
-                # Run each test case for all DUTs and then go to next DUT
-                raise Exception("Not implemented")
-            else:
-                raise Exception("Unknown test test_control.parallel_execution parameter")
+                    for test_position_name, test_position_instance in test_positions.items():
+                        parallel_run(test_position_name, test_position_instance)
+
+                elif common_definitions.PARALLEL_EXECUTION == 'PER_TEST_CASE':
+                    # Run each test case for all DUTs and then go to next DUT
+                    raise Exception("Not implemented")
+                else:
+                    raise Exception("Unknown test test_control.parallel_execution parameter")
+
+                if loop_testing:
+                    loop_testing = all([position.stop_looping for position in test_positions])
 
             for test_position_name, test_position_instance in test_positions.items():
 

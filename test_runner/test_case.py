@@ -82,6 +82,10 @@ class TestCase(ABC):
         """Stops testing before going to next test step"""
         self.test_position.stop_testing = True
 
+    def stop_looping(self):
+        """Stops testing before going to next test step"""
+        self.test_position.stop_looping = True
+
     def result_handler(self, error=None):
         """Checks if test is pass or fail. Can be overridden if needed."""
 

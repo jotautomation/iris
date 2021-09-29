@@ -8,6 +8,7 @@ class TestPosition:
         self.test_case_instances = {}
         self.dut = None
         self.stop_testing = False
+        self.stop_looping = False
         self.previous_dut = False
 
     def prepare_for_new_test_run(self):
