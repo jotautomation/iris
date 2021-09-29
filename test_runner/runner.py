@@ -398,17 +398,32 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                 for task in background_post_tasks:
                     task.join()
 
-            # Run test cases for each DUT in test position
-            for test_position_name, test_position_instance in test_positions.items():
+            if common_definitions.PARALLEL_EXECUTION == 'PARALLEL':
+                # Run test cases for each DUT in test position fully parallel
+                for test_position_name, test_position_instance in test_positions.items():
 
-                background_test_run = threading.Thread(
-                    target=parallel_run, args=(test_position_name, test_position_instance)
-                )
-                background_test_run.start()
-                background_test_runs.append(background_test_run)
+                    background_test_run = threading.Thread(
+                        target=parallel_run, args=(test_position_name, test_position_instance)
+                    )
+                    background_test_run.start()
+                    background_test_runs.append(background_test_run)
 
-            for test_run in background_test_runs:
-                test_run.join()
+                for test_run in background_test_runs:
+                    test_run.join()
+
+            elif common_definitions.PARALLEL_EXECUTION == 'PER_DUT':
+
+                # Run test cases for each DUT so that all test cases are run first for one DUT and
+                # then continue to another
+
+                for test_position_name, test_position_instance in test_positions.items():
+                    parallel_run(test_position_name, test_position_instance)
+
+            elif common_definitions.PARALLEL_EXECUTION == 'PER_TEST_CASE':
+                # Run each test case for all DUTs and then go to next DUT
+                raise Exception("Not implemented")
+            else:
+                raise Exception("Unknown test test_control.parallel_execution parameter")
 
             for test_position_name, test_position_instance in test_positions.items():
 

@@ -18,6 +18,9 @@ DB_HANDLER_NAME = 'test_data_db'
 
 FLOW_CONTROL = FlowControl.CONTINUE
 
+# PARALLEL, PER_DUT, PER_TEST_CASE
+PARALLEL_EXECUTION = 'PARALLEL'
+
 # Wait DUT serial number from UI
 SN_FROM_UI = True
 
