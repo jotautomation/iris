@@ -139,9 +139,9 @@ class TestCase(ABC):
         def __set_result(target):
             if target == 'error':
                 # If result is set to error, it must stay on error
-                return
+                pass
             elif target == 'fail':
-                if target == 'error':
+                if result == 'error':
                     # From 'fail' go only to 'error'
                     target = result
             else:
@@ -158,7 +158,7 @@ class TestCase(ABC):
         if not hasattr(self, 'pass_fail_result'):
             self.dut.pass_fail_result = result
         else:
-            __set_result(self.dut.pass_fail_result)
+            self.dut.pass_fail_result = __set_result(self.dut.pass_fail_result)
 
         if result != 'pass':
 
