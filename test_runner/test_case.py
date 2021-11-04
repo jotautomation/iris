@@ -41,7 +41,7 @@ class TestCase(ABC):
         self.db_handler = db_handler
         self.my_ip = common_definitions.IRIS_IP
         # Initialize measurement dictionary
-        self.dut.test_cases[self.name] = {'id': id(self), 'result': 'pass', 'measurements': {}}
+        self.dut.test_cases[self.name] = {'id': id(self), 'result': 'testing', 'measurements': {}}
 
     def show_operator_instructions(self, message, append=False):
         self.report_progress.show_operator_instructions(message, append)

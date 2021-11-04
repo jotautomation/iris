@@ -6,7 +6,7 @@ class Dut:
         self.patch = patch
         self.additional_info = additional_info
         self.test_cases = {}
-        self.pass_fail_result = 'pass'
+        self.pass_fail_result = 'testing'
         self.failed_steps = []
         self.error_steps = []
 
