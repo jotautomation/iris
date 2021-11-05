@@ -4,13 +4,12 @@ import bcrypt
 
 # This is our "user database". As you see passwords and users are hardcoded.
 USER_ROLES = {
-    "Service": '$2b$12$9krtCz3xld.d4JRI2TYixuxhaNiRXysFtiGSPdYzGQ/ilxzJIbHHK',
-    "Admin": '$2b$12$6ov3vhUecjQJGHqWsAI/vOHK.PBvrLTY0ZdhZUcvCrZtJyuebM2se',
+    "Engineer": '$2b$12$9krtCz3xld.d4JRI2TYixuxhaNiRXysFtiGSPdYzGQ/ilxzJIbHHK',
 }
 
 
 def authenticate(user, password):
-    if user in ["Service", "Admin"]:
+    if user in ["Engineer"]:
         if bcrypt.checkpw(password.encode(), USER_ROLES[user].encode()):
             return True
 
@@ -27,7 +26,7 @@ def get_cookie_secret():
             secret = f.read()
     except FileNotFoundError:
         with open("cookie_secret", 'w') as f:
-            secret = base64.b64encode(os.urandom(50)).decode('ascii')
+            secret = base64.b64encode(os.urandom(45)).decode('ascii')
             f.write(secret)
     return secret
 

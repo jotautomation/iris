@@ -25,6 +25,9 @@ SN_FROM_UI = True
 # List of test sequences' directory names
 TEST_SEQUENCES = os.listdir('test_definitions/sequences')
 
+# List of possible running modes
+RUNNING_MODES = ["Production", "Debug", "GageRR"]
+
 
 def parse_dut_info(info, test_position):
     return Dut(serial_number=info['sn'], test_position=test_position)

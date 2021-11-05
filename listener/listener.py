@@ -88,12 +88,10 @@ class IrisRequestHandler(tornado.web.RequestHandler):
         self.finish()
 
     def get_current_user(self):
-        print("Get current user")
-        cur_user = self.get_secure_cookie("user")
-        print("Current user: " + str(cur_user))
+        cur_user = self.get_secure_cookie("iris")
         if cur_user:
             return cur_user.decode()
-        self.clear_cookie("user")
+        self.clear_cookie("iris")
         return "Operator"
 
 
@@ -117,7 +115,7 @@ class LoginHandler(IrisRequestHandler):
     def handle_post(self, json_args, host, user, *args):
         auth = authenticate(json_args['user'], json_args['password'])
         if auth:
-            self.set_secure_cookie("user", json_args['user'], expires_days=1)
+            self.set_secure_cookie("iris", json_args['user'], expires_days=1)
         else:
             raise tornado.web.HTTPError(422, "Wrong username / password")
 
@@ -263,10 +261,10 @@ class MessageWebsocketHandler(tornado.websocket.WebSocketHandler):
         pass
 
     def get_current_user(self):
-        cur_user = self.get_secure_cookie("user")
+        cur_user = self.get_secure_cookie("iris")
         if cur_user:
             return cur_user.decode()
-        self.clear_cookie("user")
+        self.clear_cookie("iris")
         return "Operator"
 
     def on_close(self):
