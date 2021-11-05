@@ -48,7 +48,7 @@ def get_test_control(logger):
         'run': threading.Event(),
         'get_sn_from_ui': get_common_definitions().SN_FROM_UI,
         'test_sequences': get_common_definitions().TEST_SEQUENCES,
-        'running_modes': get_common_definitions().RUNNING_MODES,
+        'running_mode': get_common_definitions().RUNNING_MODES,
         'dry_run': False,
         'test_cases': get_test_cases(logger),
     }
