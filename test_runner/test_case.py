@@ -155,7 +155,7 @@ class TestCase(ABC):
         self.dut.test_cases[self.name]['result'] = new_result
 
         # Set result for DUT
-        if not hasattr(self, 'pass_fail_result'):
+        if not hasattr(self.dut, 'pass_fail_result'):
             self.dut.pass_fail_result = result
         else:
             self.dut.pass_fail_result = __set_result(self.dut.pass_fail_result)
