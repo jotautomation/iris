@@ -49,6 +49,8 @@ def get_test_control(logger):
         'get_sn_from_ui': get_common_definitions().SN_FROM_UI,
         'test_sequences': get_common_definitions().TEST_SEQUENCES,
         'running_mode': get_common_definitions().RUNNING_MODES,
+        'identify': get_common_definitions().IDENTIFY,
+        'gage_rr': get_common_definitions().GAGE_RR,
         'dry_run': False,
         'test_cases': get_test_cases(logger),
     }
@@ -60,7 +62,8 @@ def get_sn_from_ui(dut_sn_queue, logger):
     sequence_name = None
     test_cases = None
     common_definitions = get_common_definitions()
-    running_mode = get_common_definitions().RUNNING_MODES[0]
+    running_mode = common_definitions.RUNNING_MODES[0]
+    gage_rr = common_definitions.GAGE_RR
     duts_sn = {
         test_position.name: {'sn': None} for test_position in common_definitions.TEST_POSITIONS
     }
@@ -78,13 +81,15 @@ def get_sn_from_ui(dut_sn_queue, logger):
                 if dut in duts_sn:
                     duts_sn[dut]['sn'] = msg[dut]
             if 'sequence' in msg:
-                sequence_name = msg['sequence']
+                if msg['sequence'] in common_definitions.TEST_SEQUENCES:
+                    sequence_name = msg['sequence']
             if 'running_mode' in msg:
-                if msg['running_mode'] in get_common_definitions().RUNNING_MODES:
+                if msg['running_mode'] in common_definitions.RUNNING_MODES:
                     running_mode = msg['running_mode']
             if 'testCases' in msg and msg['testCases']:
-
-                test_cases = [t['name'] for t in msg['testCases']]
+                test_cases = msg['testCases']
+            if 'gage_rr' in msg and msg['gage_rr']:
+                gage_rr = msg['gage_rr']
 
         except (AttributeError, json.decoder.JSONDecodeError):
             pass
@@ -95,10 +100,13 @@ def get_sn_from_ui(dut_sn_queue, logger):
                 break
         else:
             logger.info("All DUT serial numbers received from UI")
-            logger.info("Selected test %s", sequence_name)
+            if sequence_name not in ['None', None]:
+                logger.info("Selected test %s", sequence_name)
+            else:
+                logger.info("No selected sequence from UI.")
             break
 
-    return (duts_sn, sequence_name, {"name": "Not available"}, test_cases, running_mode)
+    return (duts_sn, sequence_name, {"name": "Not available"}, test_cases, running_mode, gage_rr)
 
 
 def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, listener_args):
@@ -161,6 +169,13 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
     for position in common_definitions.TEST_POSITIONS:
         test_positions[position.name] = position
 
+    gage_progress = {
+        "operator": 0,
+        "dut": 0,
+        "trial": 0,
+        "completed": False
+    }
+
     # Start the actual test loop
     while not test_control['terminate']:
         # Wait until you are allowed to run again i.e. pause
@@ -208,6 +223,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                     operator_info,
                     test_cases_override,
                     running_mode,
+                    gage_rr
                 ) = get_sn_from_ui(dut_sn_queue, logger)
 
                 sequence_name_from_identify = common_definitions.identify_DUTs(
@@ -215,8 +231,20 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                 )
 
                 # If sequence was not selected, get it from identify_DUTs
-                if sequence_name is None:
+                if sequence_name is None or test_control['identify']:
                     sequence_name = sequence_name_from_identify
+                    if not isinstance(sequence_name, str):
+                        sequence_name = sequence_name[1]
+                    logger.info("Selected sequence %s with identify.", sequence_name)
+                    progress.set_progress(
+                        sequence_name=sequence_name,
+                    )
+
+                if sequence_name in test_cases_override and test_cases_override[sequence_name]:
+                    test_cases_override = [t['name'] for t in test_cases_override[sequence_name]]
+                else:
+                    logger.info("No skipped test cases.")
+                    test_cases_override = None
 
             else:
                 # Or from identify_DUTs function
@@ -253,6 +281,14 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             test_run_id = str(start_time_epoch).replace('.', '_')
 
             logger.info("Running mode: %s", running_mode)
+            if 'gage' in running_mode.lower():
+                logger.info("Gage R&R settings: %s", gage_rr)
+                logger.info("Gage R&R progress: Operator %s, Dut %s, Trial %s.",
+                    (gage_progress['operator'] + 1),
+                    (gage_progress['dut'] + 1),
+                    (gage_progress['trial'] + 1)
+                )
+                test_control['gage_rr'] = gage_rr
 
             # Run all test cases
             for test_case_name in test_case_names:
@@ -455,8 +491,29 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             results["end_time"] = datetime.datetime.now()
             results["test_run_id"] = test_run_id
             results["running_mode"] = running_mode
-
             results["duration_s"] = round(time.monotonic() - start_time_monotonic, 2)
+
+            if 'gage' in running_mode.lower():
+                results["gage_rr"] = gage_progress
+
+                if gage_progress['trial'] < gage_rr['trials'] - 1:
+                    gage_progress['trial'] += 1
+                elif gage_progress['dut'] < gage_rr['duts'] - 1:
+                    gage_progress['dut'] += 1
+                    gage_progress['trial'] = 0
+                elif gage_progress['operator'] < gage_rr['operators'] - 1:
+                    gage_progress['operator'] += 1
+                    gage_progress['dut'] = 0
+                    gage_progress['trial'] = 0
+                else:
+                    gage_progress['completed'] = True
+                    gage_progress['operator'] = 0
+                    gage_progress['dut'] = 0
+                    gage_progress['trial'] = 0
+                    logger.info("Gage R&R sequence has been completed.")
+                progress.set_progress(
+                    gage_progress=gage_progress
+                )
 
         except exceptions.IrisError as e:
             # TODO: write error to report

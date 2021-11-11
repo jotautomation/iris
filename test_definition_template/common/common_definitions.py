@@ -21,6 +21,7 @@ FLOW_CONTROL = FlowControl.CONTINUE
 # Wait DUT serial number from UI
 SN_FROM_UI = True
 
+IDENTIFY = True
 
 # List of test sequences' directory names
 TEST_SEQUENCES = os.listdir('test_definitions/sequences')
@@ -28,6 +29,12 @@ TEST_SEQUENCES = os.listdir('test_definitions/sequences')
 # List of possible running modes
 RUNNING_MODES = ["Production", "Debug", "GageRR"]
 
+# Gage R&R settings
+GAGE_RR = {
+    "operators": 3,
+    "duts": 10,
+    "trials": 3,
+}
 
 def parse_dut_info(info, test_position):
     return Dut(serial_number=info['sn'], test_position=test_position)
