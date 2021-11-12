@@ -62,6 +62,7 @@ def get_sn_from_ui(dut_sn_queue, logger):
     sequence_name = None
     test_cases = None
     common_definitions = get_common_definitions()
+    external_selection = False
     running_mode = common_definitions.RUNNING_MODES[0]
     gage_rr = common_definitions.GAGE_RR
     duts_sn = {
@@ -86,6 +87,8 @@ def get_sn_from_ui(dut_sn_queue, logger):
             if 'running_mode' in msg:
                 if msg['running_mode'] in common_definitions.RUNNING_MODES:
                     running_mode = msg['running_mode']
+            if 'external_selection' in msg and msg['external_selection']:
+                external_selection = bool(msg['external_selection'])
             if 'testCases' in msg and msg['testCases']:
                 test_cases = msg['testCases']
             if 'gage_rr' in msg and msg['gage_rr']:
@@ -106,7 +109,15 @@ def get_sn_from_ui(dut_sn_queue, logger):
                 logger.info("No selected sequence from UI.")
             break
 
-    return (duts_sn, sequence_name, {"name": "Not available"}, test_cases, running_mode, gage_rr)
+    return (
+        duts_sn,
+        sequence_name,
+        {"name": "Not available"},
+        test_cases,
+        external_selection,
+        running_mode,
+        gage_rr
+    )
 
 
 def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, listener_args):
@@ -222,6 +233,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                     sequence_name,
                     operator_info,
                     test_cases_override,
+                    external_selection,
                     running_mode,
                     gage_rr
                 ) = get_sn_from_ui(dut_sn_queue, logger)
@@ -231,7 +243,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                 )
 
                 # If sequence was not selected, get it from identify_DUTs
-                if sequence_name is None or test_control['identify']:
+                if sequence_name is None or external_selection:
                     sequence_name = sequence_name_from_identify
                     if not isinstance(sequence_name, str):
                         sequence_name = sequence_name[1]
