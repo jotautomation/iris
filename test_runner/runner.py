@@ -172,6 +172,9 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
     # Execute boot_up defined for the test sequence
     common_definitions.boot_up(common_definitions.INSTRUMENTS, logger)
 
+    # Add possibility to controlling test_control
+    common_definitions.set_events(test_control, common_definitions.INSTRUMENTS)
+
     test_positions = {}
     fail_reason_history = ''
     fail_reason_count = 0
