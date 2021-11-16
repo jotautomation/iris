@@ -49,7 +49,6 @@ def get_test_control(logger):
         'get_sn_from_ui': get_common_definitions().SN_FROM_UI,
         'test_sequences': get_common_definitions().TEST_SEQUENCES,
         'running_mode': get_common_definitions().RUNNING_MODES,
-        'identify': get_common_definitions().IDENTIFY,
         'gage_rr': get_common_definitions().GAGE_RR,
         'dry_run': False,
         'test_cases': get_test_cases(logger),
