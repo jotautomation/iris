@@ -216,7 +216,7 @@ class TestCase(ABC):
         self.evaluate_results()
         self.check_measurements_vs_limits()
 
-        if self.dut.pass_fail_result:
+        if self.dut.pass_fail_result == 'pass':
             self.clean_pass()
         else:
             self.clean_fail()

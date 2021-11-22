@@ -60,6 +60,7 @@ def get_sn_from_ui(dut_sn_queue, logger):
 
     sequence_name = None
     test_cases = None
+    operator = "Not available"
     common_definitions = get_common_definitions()
     external_selection = False
     running_mode = common_definitions.RUNNING_MODES[0]
@@ -92,6 +93,8 @@ def get_sn_from_ui(dut_sn_queue, logger):
                 test_cases = msg['testCases']
             if 'gage_rr' in msg and msg['gage_rr']:
                 gage_rr = msg['gage_rr']
+            if 'operator' in msg and msg['operator']:
+                operator = msg['operator']
 
         except (AttributeError, json.decoder.JSONDecodeError):
             pass
@@ -111,7 +114,7 @@ def get_sn_from_ui(dut_sn_queue, logger):
     return (
         duts_sn,
         sequence_name,
-        {"name": "Not available"},
+        {"name": operator},
         test_cases,
         external_selection,
         running_mode,
@@ -410,7 +413,8 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                                 test_positions=test_positions,
                                 sequence_name=sequence_name,
                             )
-                            test_position_instance.test_status = "Idle"
+                            
+                            test_position_instance.test_status = "Aborting" if test_control['abort'] else "Idle"
 
                             # Start post task and store it to list
 
@@ -443,7 +447,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
 
                     else:
                         # No error and no active tests
-                        test_position_instance.status = 'idle'
+                        test_position_instance.status = "Aborting" if test_control['abort'] else "Idle"
                         test_position_instance.step = None
 
                         progress.set_progress(
@@ -462,6 +466,9 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
 
                 if not test_position_instance.dut:
                     continue
+
+                if test_control['abort']:
+                    dut.pass_fail_result = 'abort'
 
                 if dut.pass_fail_result == 'error':
                     errors = [
@@ -489,6 +496,18 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
 
             if fail_reason_count > 4 and pass_count < 5:
                 send_message(f"WARNING: 5 or more consecutive fails on {fail_reason_history}")
+
+            # Don't create report if aborted
+            if test_control['abort']:
+                logger.warning("Test aborted. Finalize test as fail.")
+                progress.set_progress(
+                    general_state='abort',
+                    test_positions=test_positions,
+                    overall_result=dut.pass_fail_result,
+                    sequence_name=sequence_name,
+                )
+                common_definitions.test_aborted(common_definitions.INSTRUMENTS, logger)
+                continue
 
             progress.set_progress(
                 general_state='finalize',
@@ -542,11 +561,6 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             pass
         finally:
             pass
-
-        # Don't create report if aborted
-        if test_control['abort']:
-            common_definitions.test_aborted(common_definitions.INSTRUMENTS, logger)
-            continue
 
         progress.set_progress(
             general_state="Create test report",

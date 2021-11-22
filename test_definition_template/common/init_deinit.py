@@ -16,6 +16,10 @@ def finalize_test(overallresult, duts, instruments, logger):
     instruments['gaia'].wait_not_ready()
 
 
+def test_aborted(instruments, logger):
+    finalize_test(False, None, instruments, logger)
+
+
 def prepare_test(instruments, logger, dut_sn_values, sequence_name):
     logger.info("Waiting G5 to get ready for next (or first) test run")
     instruments['gaia'].wait_ready()
