@@ -8,6 +8,7 @@ from unittest.mock import MagicMock
 from test_runner import progress_reporter
 from test_runner import helpers
 from test_runner import exceptions
+import gaiaclient
 
 
 def get_common_definitions():
@@ -424,6 +425,10 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                             background_post_tasks.append(bg_task)
 
                     except Exception as err:
+
+                        if isinstance(err, gaiaclient.GaiaError):
+                            logger.error("Gaia error catched, abort testing.")
+                            test_control['abort'] = True
 
                         trace = []
                         trace_back = err.__traceback__
