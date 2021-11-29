@@ -200,8 +200,6 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
         logger.info("Start new test run")
 
         try:
-            background_pre_tasks = {}
-            background_post_tasks = []
             test_control['abort'] = False
 
             logger.info("Checking status of instruments")
@@ -308,30 +306,31 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                 )
                 test_control['gage_rr'] = gage_rr
 
-            # Run all test cases
-            for test_case_name in test_case_names:
-                # Loop for testing
+            def parallel_run(test_position_name, test_position_instance, sync_test_cases=False):
+                background_pre_tasks = {}
+                background_post_tasks = []
 
-                if test_control['abort']:
+                # Run all test cases
+                for test_case_name in test_case_names:
+                    # Loop for testing
 
-                    send_message("Test aborted")
-                    logger.warning("Test aborted")
-                    break
+                    if test_control['abort']:
 
-                if test_cases_override and test_case_name not in test_cases_override:
-                    continue
+                        send_message("Test aborted")
+                        logger.warning("Test aborted")
+                        break
 
-                is_pre_test = False
-                if '_pre' in test_case_name:
-                    is_pre_test = True
+                    if test_cases_override and test_case_name not in test_cases_override:
+                        continue
 
-                test_case_name = test_case_name.replace('_pre', '').replace('_pre', '')
+                    is_pre_test = False
+                    if '_pre' in test_case_name:
+                        is_pre_test = True
 
-                # Run test cases for each DUT in test position
-                for test_position_name, test_position_instance in test_positions.items():
+                    test_case_name = test_case_name.replace('_pre', '').replace('_pre', '')
 
-                    # Set sn to be none, if you don't want to run any test_case_names for the test position
-                    # but want to keep showing the position on the UI
+                    # Set sn to be none, if you don't want to run any test_case_names
+                    # for the test position but want to keep showing the position on the UI
                     if not test_position_instance.dut or test_position_instance.stop_testing:
                         continue
 
@@ -409,13 +408,28 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                             # Run the actual test case
                             test_instance.run_test()
 
+                            # Synchronize parallel per test case testing
+                            if sync_test_cases:
+                                if thread_barrier.parties > 1:
+                                    logger.info(
+                                        "Thread for test position %s is waiting for other threads.",
+                                        test_position_instance.name
+                                    )
+                                i_thread_wait = thread_barrier.wait()
+                                if i_thread_wait == 0:
+                                    logger.info(
+                                        "All threads have synced test case completion."
+                                    )
+
                             progress.set_progress(
                                 general_state='testing',
                                 test_positions=test_positions,
                                 sequence_name=sequence_name,
                             )
-                            
-                            test_position_instance.test_status = "Aborting" if test_control['abort'] else "Idle"
+
+                            test_position_instance.test_status = (
+                                "Aborting" if test_control['abort'] else "Idle"
+                            )
 
                             # Start post task and store it to list
 
@@ -452,7 +466,9 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
 
                     else:
                         # No error and no active tests
-                        test_position_instance.status = "Aborting" if test_control['abort'] else "Idle"
+                        test_position_instance.status = (
+                            "Aborting" if test_control['abort'] else "Idle"
+                        )
                         test_position_instance.step = None
 
                         progress.set_progress(
@@ -461,8 +477,64 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                             sequence_name=sequence_name,
                         )
 
-            for task in background_post_tasks:
-                task.join()
+                for task in background_post_tasks:
+                    task.join()
+
+            loop_testing = True  # Execute at least one loop
+            while loop_testing:
+                logger.info("Start test loop.")
+                background_test_runs = []
+                sync_test_cases = common_definitions.PARALLEL_EXECUTION == 'PER_TEST_CASE'
+                if common_definitions.PARALLEL_EXECUTION in ['PARALLEL', 'PER_TEST_CASE']:
+                    # Run test cases for each DUT in test position fully parallel
+                    for test_position_name, test_position_instance in test_positions.items():
+
+                        if test_position_instance.stop_looping:
+                            logger.info("Skip %s from test loop", test_position_instance.name)
+                            continue
+
+                        background_test_run = threading.Thread(
+                            target=parallel_run, args=(
+                                test_position_name,
+                                test_position_instance,
+                                sync_test_cases
+                            )
+                        )
+                        background_test_run.start()
+                        background_test_runs.append(background_test_run)
+
+                    thread_barrier = threading.Barrier(len(background_test_runs))
+
+                    for test_run in background_test_runs:
+                        test_run.join()
+
+                elif common_definitions.PARALLEL_EXECUTION == 'PER_DUT':
+
+                    # Run test cases for each DUT so that
+                    # all test cases are run first for one DUT and then continue to another
+
+                    for test_position_name, test_position_instance in test_positions.items():
+                        if test_position_instance.stop_looping:
+                            logger.info("Skip %s from test loop", test_position_instance.name)
+                            continue
+                        parallel_run(
+                            test_position_name,
+                            test_position_instance,
+                            sync_test_cases
+                        )
+
+                else:
+                    raise Exception("Unknown test test_control.parallel_execution parameter")
+
+                loop_testing = common_definitions.LOOP_EXECUTION == 'CONTINUOUS'
+                if loop_testing:
+                    loop_testing = any(
+                        not position.stop_looping for position in list(test_positions.values())
+                    )
+                    if not loop_testing:
+                        logger.info("All test positions have stopped loop testing.")
+                if test_control['abort']:
+                    loop_testing = False
 
             for test_position_name, test_position_instance in test_positions.items():
 
@@ -532,7 +604,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             results["duration_s"] = round(time.monotonic() - start_time_monotonic, 2)
 
             if 'gage' in running_mode.lower():
-                results["gage_rr"] = gage_progress
+                results["gage_rr"] = gage_progress.copy()
 
                 if gage_progress['trial'] < gage_rr['trials'] - 1:
                     gage_progress['trial'] += 1
@@ -553,13 +625,15 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                     gage_progress=gage_progress
                 )
 
-        except exceptions.IrisError as e:
+        except exceptions.IrisError as ex:
             # TODO: write error to report
             logger.exception("Error on testsequence")
+            logger.exception(str(ex))
             continue
-        except Exception as exp:
+        except Exception as ex:
             # TODO: write error to report
             logger.exception("Error on testsequence")
+            logger.exception(str(ex))
             continue
 
         else:

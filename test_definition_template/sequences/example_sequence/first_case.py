@@ -29,6 +29,12 @@ class First(TestCase):
 
         time.sleep(2)
 
+        # Stops looping if continuous looping activated
+        # self.stop_looping()
+
+        # Stops testing after this test case. Doesn't stop looping.
+        # self.stop_testing()
+
     def post_test(self):
         # post_test will be run always on background after the test
         pass
