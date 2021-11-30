@@ -21,6 +21,13 @@ FLOW_CONTROL = FlowControl.CONTINUE
 # PARALLEL, PER_DUT, PER_TEST_CASE
 PARALLEL_EXECUTION = 'PARALLEL'
 
+# MID, COMPLETED, BOTH
+PARALLEL_SYNC_PER_TEST_CASE = 'MID'
+
+# Thread syncing waiting timeout in seconds
+# Mid test case thread syncing timeout is defined in test cases
+PARALLEL_SYNC_COMPLETED_TEST_TIMEOUT = 10.0
+
 # SINGLE, CONTINUOUS,
 LOOP_EXECUTION = 'SINGLE'
 

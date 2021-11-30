@@ -378,6 +378,8 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                     test_instance = test_position_instance.test_case_instances[test_case_name]
                     test_instance.test_position = test_position_instance
                     test_instance.test_run_id = test_run_id
+                    if sync_test_cases and all_pos_mid_test_cases_completed is not None:
+                        test_instance.thread_barrier = all_pos_mid_test_cases_completed
                     try:
                         if is_pre_test:
                             # Start pre task and store it to dictionary
@@ -409,17 +411,26 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                             test_instance.run_test()
 
                             # Synchronize parallel per test case testing
-                            if sync_test_cases:
-                                if thread_barrier.parties > 1:
+                            if sync_test_cases and all_pos_test_cases_completed is not None:
+                                if all_pos_test_cases_completed.parties > 1:
                                     logger.info(
-                                        "Thread for test position %s is waiting for other threads.",
-                                        test_position_instance.name
+                                        "Test case completed thread for test position "
+                                        "%s is waiting for other %s threads.",
+                                        test_position_instance.name,
+                                        (
+                                            all_pos_test_cases_completed.parties -
+                                            all_pos_test_cases_completed.n_waiting
+                                            - 1
+                                        )
                                     )
-                                i_thread_wait = thread_barrier.wait()
+                                i_thread_wait = all_pos_test_cases_completed.wait(
+                                    common_definitions.PARALLEL_SYNC_COMPLETED_TEST_TIMEOUT
+                                )
                                 if i_thread_wait == 0:
                                     logger.info(
                                         "All threads have synced test case completion."
                                     )
+                                    all_pos_test_cases_completed.reset()
 
                             progress.set_progress(
                                 general_state='testing',
@@ -443,6 +454,18 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                         if isinstance(err, gaiaclient.GaiaError):
                             logger.error("Gaia error catched, abort testing.")
                             test_control['abort'] = True
+
+                        if sync_test_cases:
+                            if all_pos_mid_test_cases_completed is not None:
+                                logger.info(
+                                    "Abort mid test case thread barrier."
+                                )
+                                all_pos_mid_test_cases_completed.abort()
+                            if all_pos_test_cases_completed is not None:
+                                logger.info(
+                                    "Abort completed test case thread barrier."
+                                )
+                                all_pos_test_cases_completed.abort()
 
                         trace = []
                         trace_back = err.__traceback__
@@ -485,12 +508,17 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                 logger.info("Start test loop.")
                 background_test_runs = []
                 sync_test_cases = common_definitions.PARALLEL_EXECUTION == 'PER_TEST_CASE'
+                all_pos_test_cases_completed = None
+                all_pos_mid_test_cases_completed = None
                 if common_definitions.PARALLEL_EXECUTION in ['PARALLEL', 'PER_TEST_CASE']:
                     # Run test cases for each DUT in test position fully parallel
                     for test_position_name, test_position_instance in test_positions.items():
 
                         if test_position_instance.stop_looping:
-                            logger.info("Skip %s from test loop", test_position_instance.name)
+                            logger.info(
+                                "Skip position %s from test loop",
+                                test_position_instance.name
+                            )
                             continue
 
                         background_test_run = threading.Thread(
@@ -500,10 +528,29 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                                 sync_test_cases
                             )
                         )
-                        background_test_run.start()
                         background_test_runs.append(background_test_run)
 
-                    thread_barrier = threading.Barrier(len(background_test_runs))
+                    logger.debug("Amount of test threads: %s", len(background_test_runs))
+
+                    if sync_test_cases:
+                        if common_definitions.PARALLEL_SYNC_PER_TEST_CASE in ['MID', 'BOTH']:
+                            all_pos_mid_test_cases_completed = threading.Barrier(
+                                len(background_test_runs)
+                            )
+                        if common_definitions.PARALLEL_SYNC_PER_TEST_CASE in ['COMPLETED', 'BOTH']:
+                            all_pos_test_cases_completed = threading.Barrier(
+                                len(background_test_runs)
+                            )
+                        if (
+                            all_pos_mid_test_cases_completed is None and
+                            all_pos_test_cases_completed is None
+                        ):
+                            raise Exception(
+                                "Unknown common_definiton.PARALLEL_SYNC_PER_TEST_CASE parameter"
+                            )
+
+                    for test_run in background_test_runs:
+                        test_run.start()
 
                     for test_run in background_test_runs:
                         test_run.join()
@@ -515,7 +562,10 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
 
                     for test_position_name, test_position_instance in test_positions.items():
                         if test_position_instance.stop_looping:
-                            logger.info("Skip %s from test loop", test_position_instance.name)
+                            logger.info(
+                                "Skip position %s from test loop",
+                                test_position_instance.name
+                            )
                             continue
                         parallel_run(
                             test_position_name,
