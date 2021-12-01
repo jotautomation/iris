@@ -18,7 +18,8 @@ def create_report(
 ):
     """Creates and stores report for DUT(s)"""
 
-    progress_reporter.show_operator_instructions("Put DUT to yellow box!")
+    if common_definitions.OPERATOR_INTRODUCTIONS:
+        progress_reporter.show_operator_instructions("Take finished DUT away from tester.")
 
     # Get root level items on report
     root_items = {}

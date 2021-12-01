@@ -52,6 +52,9 @@ def get_test_control(logger):
         'running_mode': get_common_definitions().RUNNING_MODES,
         'gage_rr': get_common_definitions().GAGE_RR,
         'dry_run': False,
+        'start_time_monotonic': 0,
+        'stop_time_monotonic': 0,
+        'test_time': 0,
         'test_cases': get_test_cases(logger),
     }
 
@@ -229,6 +232,10 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
 
             test_cases_override = None
 
+            running_mode = common_definitions.RUNNING_MODES[0]
+            if common_definitions.LOOP_EXECUTION is True:
+                test_control['test_time'] = common_definitions.LOOP_TIME_IN_SECONDS
+
             # DUT sn may come from UI
             if test_control['get_sn_from_ui']:
 
@@ -295,6 +302,8 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             start_time = datetime.datetime.now()
             start_time_monotonic = time.monotonic()
             test_run_id = str(start_time_epoch).replace('.', '_')
+            test_control['start_time_monotonic'] = start_time_monotonic
+            test_control['stop_time_monotonic'] = 0
 
             logger.info("Running mode: %s", running_mode)
             if 'gage' in running_mode.lower():
@@ -576,7 +585,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                 else:
                     raise Exception("Unknown test test_control.parallel_execution parameter")
 
-                loop_testing = common_definitions.LOOP_EXECUTION == 'CONTINUOUS'
+                loop_testing = common_definitions.LOOP_EXECUTION == True
                 if loop_testing:
                     loop_testing = any(
                         not position.stop_looping for position in list(test_positions.values())
@@ -623,6 +632,8 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
 
             if fail_reason_count > 4 and pass_count < 5:
                 send_message(f"WARNING: 5 or more consecutive fails on {fail_reason_history}")
+
+            test_control['stop_time_monotonic'] = time.monotonic()
 
             # Don't create report if aborted
             if test_control['abort']:

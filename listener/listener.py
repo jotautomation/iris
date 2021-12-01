@@ -188,6 +188,39 @@ class ProgressHandler(IrisRequestHandler):
 
         return json.dumps({'progress': self.test_control['progress']}, default=str)
 
+class TestTimeHandler(IrisRequestHandler):
+    """Handles returning current and remaining test times to /api/test_time"""
+
+    def handle_get(self, host, user, *args):
+        """Returns current progress as json"""
+
+        current_time = 0
+        if self.test_control['start_time_monotonic'] == 0:
+            current_time = 0
+        elif self.test_control['stop_time_monotonic'] == 0:
+            current_time = time.monotonic() - self.test_control['start_time_monotonic']
+        else:
+            current_time = (
+                self.test_control['stop_time_monotonic'] -
+                self.test_control['start_time_monotonic']
+            )
+        remaining_time = 0
+        if (
+            current_time != 0 and
+            self.test_control['test_time'] != 0 and
+            self.test_control['stop_time_monotonic'] == 0
+        ):
+            remaining_time = self.test_control['test_time'] - current_time
+        if remaining_time < 0:
+            remaining_time = 0
+
+        return json.dumps(
+            {
+                'current': f"{current_time:.3f}",
+                'remaining': f"{remaining_time:.3f}"
+            },
+            default=str
+        )
 
 class UiEntryHandler(tornado.web.StaticFileHandler):
     """Handles returning the UI from all paths except /api"""
@@ -377,6 +410,8 @@ def create_listener(
             (r"/api/testcontrol", TestRunnerHandler, init),
             (r"/api/testcontrol/([0-9]+)", TestRunnerHandler, init),
             (r"/logs", LogsHandler, init),
+            (r"/api/test_time", TestTimeHandler, init),
+            # r"/current_test", CurrentTestHandler, init),
             (
                 r"/api/download/(.*)",
                 tornado.web.StaticFileHandler,

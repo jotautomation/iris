@@ -28,11 +28,15 @@ PARALLEL_SYNC_PER_TEST_CASE = 'MID'
 # Mid test case thread syncing timeout is defined in test cases
 PARALLEL_SYNC_COMPLETED_TEST_TIMEOUT = 10.0
 
-# SINGLE, CONTINUOUS,
-LOOP_EXECUTION = 'SINGLE'
+LOOP_EXECUTION = True
+
+LOOP_TIME_IN_SECONDS = 30 * 60
 
 # Wait DUT serial number from UI
 SN_FROM_UI = True
+
+# Show operator introductions
+OPERATOR_INTRODUCTIONS = False
 
 # List of test sequences' directory names
 TEST_SEQUENCES = os.listdir('test_definitions/sequences')
