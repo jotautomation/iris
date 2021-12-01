@@ -192,7 +192,7 @@ class TestTimeHandler(IrisRequestHandler):
     """Handles returning current and remaining test times to /api/test_time"""
 
     def handle_get(self, host, user, *args):
-        """Returns current progress as json"""
+        """Returns current and remaining test time as json"""
 
         current_time = 0
         if self.test_control['start_time_monotonic'] == 0:
@@ -221,6 +221,18 @@ class TestTimeHandler(IrisRequestHandler):
             },
             default=str
         )
+
+class CurrentTestHandler(IrisRequestHandler):
+    """Handles returning current test per dut to /api/current_test"""
+
+    def handle_get(self, host, user, *args):
+        """Returns current test per dut as json"""
+
+        duts = self.test_control['progress']['duts']
+        for dut in duts:
+            duts[dut].pop('dut_class', None)
+
+        return json.dumps(duts, default=str)
 
 class UiEntryHandler(tornado.web.StaticFileHandler):
     """Handles returning the UI from all paths except /api"""
@@ -411,7 +423,7 @@ def create_listener(
             (r"/api/testcontrol/([0-9]+)", TestRunnerHandler, init),
             (r"/logs", LogsHandler, init),
             (r"/api/test_time", TestTimeHandler, init),
-            # r"/current_test", CurrentTestHandler, init),
+            (r"/api/current_test", CurrentTestHandler, init),
             (
                 r"/api/download/(.*)",
                 tornado.web.StaticFileHandler,
