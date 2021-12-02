@@ -177,7 +177,17 @@ class DutsHandler(IrisRequestHandler):
     def handle_get(self, host, user, *args):
         """Returns running test handlers"""
 
-        return {'duts': self.test_definitions.DUTS}
+        duts = self.test_control['progress']['duts']
+        for dut in duts:
+            duts[dut].pop('dut_class', None)
+
+        return json.dumps(duts, default=str)
+
+    def handle_post(self, json_args, host, user, *args):  # pylint: disable=W0613
+        """Sets dut types and serial numbers"""
+
+        # if not testing
+        # set dut types and serial numbers
 
 
 class ProgressHandler(IrisRequestHandler):
@@ -211,8 +221,7 @@ class TestTimeHandler(IrisRequestHandler):
             self.test_control['stop_time_monotonic'] == 0
         ):
             remaining_time = self.test_control['test_time'] - current_time
-        if remaining_time < 0:
-            remaining_time = 0
+        remaining_time = max(remaining_time, 0)
 
         return json.dumps(
             {
@@ -228,11 +237,12 @@ class CurrentTestHandler(IrisRequestHandler):
     def handle_get(self, host, user, *args):
         """Returns current test per dut as json"""
 
+        current_step = {}
         duts = self.test_control['progress']['duts']
         for dut in duts:
-            duts[dut].pop('dut_class', None)
+            current_step[dut] = duts[dut]["step"]
 
-        return json.dumps(duts, default=str)
+        return json.dumps(current_step, default=str)
 
 class UiEntryHandler(tornado.web.StaticFileHandler):
     """Handles returning the UI from all paths except /api"""
