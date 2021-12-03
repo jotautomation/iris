@@ -172,8 +172,14 @@ class SearchHistoryHandler(IrisRequestHandler):
 
 
 class DutsHandler(IrisRequestHandler):
-    """Handles starting of tests, returns status of tests etc."""
 
+    def initialize(self, test_control, test_definitions, listener_args, **kwargs):
+        super().initialize(test_control, test_definitions, listener_args, **kwargs)
+
+        if 'return_message_handler' in kwargs:
+            self.return_message_handler = kwargs['return_message_handler']
+
+    """Handles starting of tests, returns status of tests etc."""
     def handle_get(self, host, user, *args):
         """Returns running test handlers"""
 
@@ -185,6 +191,25 @@ class DutsHandler(IrisRequestHandler):
 
     def handle_post(self, json_args, host, user, *args):  # pylint: disable=W0613
         """Sets dut types and serial numbers"""
+
+        for pos in self.test_definitions.TEST_POSITIONS:
+            print("pos", str(pos))
+        print("test pos", self.test_definitions.TEST_POSITIONS)
+
+        if (self.test_control['get_sn_from_ui'] and
+            hasattr(self, 'return_message_handler') and
+            True # ready to receive
+        ):
+            duts = {}
+            for position in self.test_definitions.TEST_POSITIONS:
+                duts[str(position)] = ""
+            duts["sequence"] = "PU"
+
+            self.return_message_handler.put(json.dumps(duts, default=str))
+        elif not hasattr(self, 'return_message_handler'):
+            raise tornado.web.HTTPError(500, "Return message handler missing")
+        else:
+            raise tornado.web.HTTPError(422, "Could not accept DUTs")
 
         # if not testing
         # set dut types and serial numbers
@@ -419,7 +444,9 @@ def create_listener(
             ),
             (r"/api", ApiRootHandler, init),
             (r"/login", LoginHandler, init),
-            (r"/api/duts", DutsHandler, init),
+            (r"/api/duts", DutsHandler,
+                {**init, 'return_message_handler': return_message_handler}
+            ),
             (r"/api/history/search_bar_items", HistorySearchItems, init),
             (r"/api/history/search", SearchHistoryHandler, init),
             (r"/api/progress", ProgressHandler, init),

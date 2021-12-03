@@ -35,6 +35,8 @@ LOOP_TIME_IN_SECONDS = 30 * 60
 # Wait DUT serial number from UI
 SN_FROM_UI = True
 
+SN_EXTERNALLY = True
+
 # Show operator introductions
 OPERATOR_INTRODUCTIONS = False
 

@@ -48,6 +48,7 @@ def get_test_control(logger):
         'report_off': False,
         'run': threading.Event(),
         'get_sn_from_ui': get_common_definitions().SN_FROM_UI,
+        'get_sn_externally': get_common_definitions.SN_EXTERNALLY,
         'test_sequences': get_common_definitions().TEST_SEQUENCES,
         'running_mode': get_common_definitions().RUNNING_MODES,
         'gage_rr': get_common_definitions().GAGE_RR,
@@ -125,6 +126,53 @@ def get_sn_from_ui(dut_sn_queue, logger):
         gage_rr
     )
 
+
+def get_sn_externally(dut_sn_queue, logger):
+    """Returns serial numbers from external source (HTTP POST)"""
+
+    sequence_name = None
+    common_definitions = get_common_definitions()
+    duts_sn = {
+        test_position.name: {'sn': None} for test_position in common_definitions.TEST_POSITIONS
+    }
+    logger.info(
+        'Wait SNs from external source for test_positions: '
+        + ", ".join([str(t) for t in common_definitions.TEST_POSITIONS])
+    )
+
+    while True:
+        msg = dut_sn_queue.get()
+
+        try:
+            msg = json.loads(msg)
+            for dut in msg:
+                if dut in duts_sn:
+                    duts_sn[dut]['sn'] = msg[dut]
+            if 'sequence' in msg:
+                if msg['sequence'] in common_definitions.TEST_SEQUENCES:
+                    sequence_name = msg['sequence']
+
+        except (AttributeError, json.decoder.JSONDecodeError):
+            pass
+
+        # Check how many positions are defined for this sequence name!!
+
+        # Loop until all test_positions have received a serial number
+        for dut in duts_sn:
+            if not duts_sn[dut]['sn']:
+                break
+        else:
+            logger.info("All DUT serial numbers received from UI")
+            if sequence_name not in ['None', None]:
+                logger.info("Selected test %s", sequence_name)
+            else:
+                logger.info("No selected sequence from UI.")
+            break
+
+    return (
+        duts_sn,
+        sequence_name
+    )
 
 def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, listener_args):
     """Starts the testing"""
@@ -263,11 +311,20 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                         sequence_name=sequence_name,
                     )
 
-                if sequence_name in test_cases_override and test_cases_override[sequence_name]:
+                if (test_cases_override is not None and
+                    sequence_name in test_cases_override and
+                    test_cases_override[sequence_name]
+                ):
                     test_cases_override = [t['name'] for t in test_cases_override[sequence_name]]
                 else:
                     logger.info("No skipped test cases.")
                     test_cases_override = None
+
+            elif test_control['get_sn_externally']:
+                (
+                    dut_sn_values,
+                    sequence_name
+                ) = get_sn_externally(dut_sn_queue, logger)
 
             else:
                 # Or from identify_DUTs function

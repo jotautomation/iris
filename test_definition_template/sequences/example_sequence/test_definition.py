@@ -7,3 +7,6 @@
 TESTS = ["Second_pre", "First", "Second", "Third", "Fourth", "PoolTestCase"]
 
 SKIP = ["Third", "Fourth"]
+
+# If not defined, default to 1
+DUTS = 1
