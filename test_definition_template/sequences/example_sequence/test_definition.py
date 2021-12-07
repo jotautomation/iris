@@ -8,5 +8,5 @@ TESTS = ["Second_pre", "First", "Second", "Third", "Fourth", "PoolTestCase"]
 
 SKIP = ["Third", "Fourth"]
 
-# If not defined, default to 1
+# Amount of DUTs to be tested for specific sequence. If not defined, defaults to 1.
 DUTS = 1

@@ -192,28 +192,32 @@ class DutsHandler(IrisRequestHandler):
     def handle_post(self, json_args, host, user, *args):  # pylint: disable=W0613
         """Sets dut types and serial numbers"""
 
-        for pos in self.test_definitions.TEST_POSITIONS:
-            print("pos", str(pos))
-        print("test pos", self.test_definitions.TEST_POSITIONS)
-
-        if (self.test_control['get_sn_from_ui'] and
-            hasattr(self, 'return_message_handler') and
-            True # ready to receive
+        if (self.test_control['get_sn_externally'] and
+            hasattr(self, 'return_message_handler')
         ):
-            duts = {}
+            defined_dut = False
+            duts = {"sequence": None}
             for position in self.test_definitions.TEST_POSITIONS:
-                duts[str(position)] = ""
-            duts["sequence"] = "PU"
+                duts[str(position)] = json_args.get(str(position))
+                if duts[str(position)] is not None:
+                    duts[str(position)] = str(duts[str(position)])
+                    defined_dut = True
+            duts["sequence"] = json_args.get("sequence")
+
+            if not defined_dut:
+                raise tornado.web.HTTPError(422, "At least one DUT must be defined")
+            if duts["sequence"] is None:
+                raise tornado.web.HTTPError(422, "Sequence name is not defined")
+            if duts["sequence"] not in self.test_definitions.TEST_SEQUENCES:
+                raise tornado.web.HTTPError(422, "Invalid sequence name")
 
             self.return_message_handler.put(json.dumps(duts, default=str))
         elif not hasattr(self, 'return_message_handler'):
-            raise tornado.web.HTTPError(500, "Return message handler missing")
+            raise tornado.web.HTTPError(500, "Listener return message handler is missing")
+        elif not self.test_control['get_sn_externally']:
+            raise tornado.web.HTTPError(422, "Test control 'SN_EXTERNALLY' is not selected")
         else:
             raise tornado.web.HTTPError(422, "Could not accept DUTs")
-
-        # if not testing
-        # set dut types and serial numbers
-
 
 class ProgressHandler(IrisRequestHandler):
     """Handles calls to /api/progress"""

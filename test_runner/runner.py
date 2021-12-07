@@ -48,7 +48,7 @@ def get_test_control(logger):
         'report_off': False,
         'run': threading.Event(),
         'get_sn_from_ui': get_common_definitions().SN_FROM_UI,
-        'get_sn_externally': get_common_definitions.SN_EXTERNALLY,
+        'get_sn_externally': get_common_definitions().SN_EXTERNALLY,
         'test_sequences': get_common_definitions().TEST_SEQUENCES,
         'running_mode': get_common_definitions().RUNNING_MODES,
         'gage_rr': get_common_definitions().GAGE_RR,
@@ -130,48 +130,54 @@ def get_sn_from_ui(dut_sn_queue, logger):
 def get_sn_externally(dut_sn_queue, logger):
     """Returns serial numbers from external source (HTTP POST)"""
 
-    sequence_name = None
     common_definitions = get_common_definitions()
-    duts_sn = {
-        test_position.name: {'sn': None} for test_position in common_definitions.TEST_POSITIONS
-    }
-    logger.info(
-        'Wait SNs from external source for test_positions: '
-        + ", ".join([str(t) for t in common_definitions.TEST_POSITIONS])
-    )
 
     while True:
-        msg = dut_sn_queue.get()
+        sequence_name = None
+        duts_sn = {
+            test_position.name: {'sn': None} for test_position in common_definitions.TEST_POSITIONS
+        }
+        dut_count = 0
+        duts = 1
+        logger.info(
+            'Wait SNs from external source for test_positions: '
+            + ", ".join([str(t) for t in common_definitions.TEST_POSITIONS])
+        )
 
+        msg = dut_sn_queue.get()
         try:
             msg = json.loads(msg)
+
             for dut in msg:
-                if dut in duts_sn:
+                if dut in duts_sn and msg[dut] is not None:
                     duts_sn[dut]['sn'] = msg[dut]
+                    dut_count += 1
             if 'sequence' in msg:
                 if msg['sequence'] in common_definitions.TEST_SEQUENCES:
                     sequence_name = msg['sequence']
-
         except (AttributeError, json.decoder.JSONDecodeError):
             pass
 
-        # Check how many positions are defined for this sequence name!!
+        test_definitions = helpers.get_test_definitions(sequence_name, logger)
+        if hasattr(test_definitions, 'DUTS'):
+            if isinstance(test_definitions.DUTS, int):
+                duts = test_definitions.DUTS
 
-        # Loop until all test_positions have received a serial number
-        for dut in duts_sn:
-            if not duts_sn[dut]['sn']:
-                break
+        if sequence_name is None:
+            logger.error("Sequence name is not defined")
+        elif duts != dut_count:
+            logger.error("DUT count mismatch. Excepted count %s, received count %s",
+                duts,
+                dut_count
+            )
         else:
-            logger.info("All DUT serial numbers received from UI")
-            if sequence_name not in ['None', None]:
-                logger.info("Selected test %s", sequence_name)
-            else:
-                logger.info("No selected sequence from UI.")
+            logger.info("Received DUT SNs externally for sequence %s", sequence_name)
             break
 
     return (
         duts_sn,
-        sequence_name
+        sequence_name,
+        {"name": "external"}
     )
 
 def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, listener_args):
@@ -323,7 +329,8 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             elif test_control['get_sn_externally']:
                 (
                     dut_sn_values,
-                    sequence_name
+                    sequence_name,
+                    operator_info
                 ) = get_sn_externally(dut_sn_queue, logger)
 
             else:
