@@ -5,7 +5,7 @@ class ProgressReporter:
     def __init__(self, test_control, progess_queue):
         self.test_control = test_control
         self.statistics = None
-        self.general_step = None
+        self.general_state = None
         self.test_positions = None
         self.overall_result = None
         self.sequence_name = None
@@ -65,7 +65,7 @@ class ProgressReporter:
                 }
 
         progress_json = {
-            "general_state": self.general_step,
+            "general_state": self.general_state,
             "duts": positions_dict,
             "sequence_name": self.sequence_name,
             "get_sn_from_ui": self.test_control['get_sn_from_ui'],
