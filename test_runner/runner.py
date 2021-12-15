@@ -149,7 +149,7 @@ def get_sn_externally(dut_sn_queue, logger):
             msg = json.loads(msg)
 
             for dut in msg:
-                if dut in duts_sn and msg[dut] is not None:
+                if dut in duts_sn and msg[dut]:
                     duts_sn[dut]['sn'] = msg[dut]
                     dut_count += 1
             if 'sequence' in msg:
@@ -163,13 +163,18 @@ def get_sn_externally(dut_sn_queue, logger):
             if isinstance(test_definitions.DUTS, int):
                 duts = test_definitions.DUTS
 
-        if sequence_name is None:
+        sns = [duts_sn[dut]['sn'] for dut in duts_sn.keys()]
+        unique_sns = set(sns)
+
+        if sequence_name is None or sequence_name == "":
             logger.error("Sequence name is not defined")
         elif duts != dut_count:
             logger.error("DUT count mismatch. Excepted count %s, received count %s",
                 duts,
                 dut_count
             )
+        elif len(sns) != len(unique_sns):
+            logger.error("All given DUTs must have unique SN")
         else:
             logger.info("Received DUT SNs externally for sequence %s", sequence_name)
             break
@@ -351,7 +356,11 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                         dut_info, test_position
                     )
 
-            results = {"operator": operator_info, "tester": common_definitions.get_tester_info()}
+            results = {
+                "sequence": sequence_name,
+                "operator": operator_info,
+                "tester": common_definitions.get_tester_info()
+            }
 
             # Fetch test definitions i.e. import module
             test_definitions = helpers.get_test_definitions(sequence_name, logger)
@@ -787,6 +796,8 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             progress.set_progress(general_state="Error")
             send_message("Error while generating a test report")
             send_message(str(e))
+            logger.error("Error while generating a test report")
+            logger.exception(e)
 
         if test_control['single_run']:
             test_control['terminate'] = True

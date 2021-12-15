@@ -195,17 +195,34 @@ class DutsHandler(IrisRequestHandler):
         if (self.test_control['get_sn_externally'] and
             hasattr(self, 'return_message_handler')
         ):
-            defined_dut = False
-            duts = {"sequence": None}
-            for position in self.test_definitions.TEST_POSITIONS:
-                duts[str(position)] = json_args.get(str(position))
-                if duts[str(position)] is not None:
-                    duts[str(position)] = str(duts[str(position)])
-                    defined_dut = True
-            duts["sequence"] = json_args.get("sequence")
+            if not isinstance(json_args, list):
+                raise tornado.web.HTTPError(422, "Request body type must be a list of DUTs")
+            if len(json_args) > len(self.test_definitions.TEST_POSITIONS):
+                raise tornado.web.HTTPError(
+                    422,
+                    "Amount of defined DUTs must be less or equal to length of 'TEST_POSITIONS'"
+                )
+            if not any('type' in position for position in json_args):
+                raise tornado.web.HTTPError(
+                    422,
+                    "DUT type (sequence name) must be defined with key 'type'"
+                )
+            if not all(position.get("type") == json_args[0].get("type") for position in json_args):
+                raise tornado.web.HTTPError(
+                    422,
+                    "All DUTs' type (sequence name) must be the same"
+                )
+            if not any('SN' in position for position in json_args):
+                raise tornado.web.HTTPError(
+                    422,
+                    "At least one DUT SN must be defined with key 'SN'"
+                )
 
-            if not defined_dut:
-                raise tornado.web.HTTPError(422, "At least one DUT must be defined")
+            duts = {"sequence": None}
+            for idx, position in enumerate(json_args):
+                duts["sequence"] = position.get("type")
+                duts[str(self.test_definitions.TEST_POSITIONS[idx])] = position.get("SN")
+
             if duts["sequence"] is None:
                 raise tornado.web.HTTPError(422, "Sequence name is not defined")
             if duts["sequence"] not in self.test_definitions.TEST_SEQUENCES:
