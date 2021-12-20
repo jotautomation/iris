@@ -587,11 +587,18 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
 
             loop_testing = True  # Execute at least one loop
             while loop_testing:
-                logger.info("Start test loop.")
+                loop_testing = common_definitions.LOOP_EXECUTION is True
+                logger.info("Start %s.", "test loop" if loop_testing else "test")
                 background_test_runs = []
                 sync_test_cases = common_definitions.PARALLEL_EXECUTION == 'PER_TEST_CASE'
                 all_pos_test_cases_completed = None
                 all_pos_mid_test_cases_completed = None
+
+                if loop_testing:
+                    common_definitions.prepare_loop(
+                        common_definitions.INSTRUMENTS, logger, dut_sn_values, sequence_name
+                    )
+
                 if common_definitions.PARALLEL_EXECUTION in ['PARALLEL', 'PER_TEST_CASE']:
                     # Run test cases for each DUT in test position fully parallel
                     for test_position_name, test_position_instance in test_positions.items():
@@ -658,13 +665,30 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                 else:
                     raise Exception("Unknown test test_control.parallel_execution parameter")
 
-                loop_testing = common_definitions.LOOP_EXECUTION == True
                 if loop_testing:
+                    common_definitions.finalize_loop(
+                        common_definitions.INSTRUMENTS, logger, dut_sn_values, sequence_name
+                    )
                     loop_testing = any(
                         not position.stop_looping for position in list(test_positions.values())
                     )
                     if not loop_testing:
                         logger.info("All test positions have stopped loop testing.")
+                    else:
+                        current_time = time.monotonic() - test_control['start_time_monotonic']
+                        remaining_time = common_definitions.LOOP_TIME_IN_SECONDS - current_time
+                        if remaining_time <= 0:
+                            logger.info("Current loop time %.2f s is over loop time limit %.2f.",
+                                current_time,
+                                common_definitions.LOOP_TIME_IN_SECONDS
+                            )
+                            loop_testing = False
+                        else:
+                            logger.info("Current loop time %.2f s. Remaining time %.2f s.",
+                                current_time, remaining_time
+                            )
+                    if not loop_testing:
+                        logger.info("End loop testing.")
                 if test_control['abort']:
                     loop_testing = False
 

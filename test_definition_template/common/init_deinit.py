@@ -24,6 +24,11 @@ def prepare_test(instruments, logger, dut_sn_values, sequence_name):
     logger.info("Waiting G5 to get ready for next (or first) test run")
     instruments['gaia'].wait_ready()
 
+def prepare_loop(instruments, logger, dut_sn_values, sequence_name):
+    pass
+
+def finalize_loop(instruments, logger, dut_sn_values, sequence_name):
+    pass
 
 def identify_DUTs(dut_sn, instruments, logger):
     import uuid
