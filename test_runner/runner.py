@@ -596,7 +596,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
 
                 if loop_testing:
                     common_definitions.prepare_loop(
-                        common_definitions.INSTRUMENTS, logger, dut_sn_values, sequence_name
+                        common_definitions.INSTRUMENTS, logger, test_positions, sequence_name
                     )
 
                 if common_definitions.PARALLEL_EXECUTION in ['PARALLEL', 'PER_TEST_CASE']:
@@ -667,7 +667,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
 
                 if loop_testing:
                     common_definitions.finalize_loop(
-                        common_definitions.INSTRUMENTS, logger, dut_sn_values, sequence_name
+                        common_definitions.INSTRUMENTS, logger, test_positions, sequence_name
                     )
                     loop_testing = any(
                         not position.stop_looping for position in list(test_positions.values())
