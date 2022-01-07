@@ -8,7 +8,6 @@ import argparse
 import sys
 import threading
 from queue import Queue
-from distutils.dir_util import copy_tree
 from test_runner import runner
 import listener.listener as listener
 import logging
@@ -109,6 +108,7 @@ LOGGER.info("Logging initialized")
 
 if ARGS.create:
 
+    from distutils.dir_util import copy_tree
     from test_definition_template.sequences import example_sequence
     from test_definition_template import test_case_pool
 

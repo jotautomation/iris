@@ -54,10 +54,10 @@ get_ui()
 
 setup(
     name="jot-iris",
-    version="1.19.10",
+    version="1.19.11",
     license="MIT License",
     author="JOT Automation Ltd.",
-    author_email="rami.rahikkala@jotautomation.com",
+    author_email="info@jotautomation.com",
     description="Super simple test sequencer for production testing",
     long_description=long_description,
     long_description_content_type="text/markdown",
