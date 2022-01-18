@@ -172,13 +172,69 @@ class SearchHistoryHandler(IrisRequestHandler):
 
 
 class DutsHandler(IrisRequestHandler):
-    """Handles starting of tests, returns status of tests etc."""
 
+    def initialize(self, test_control, test_definitions, listener_args, **kwargs):
+        super().initialize(test_control, test_definitions, listener_args, **kwargs)
+
+        if 'return_message_handler' in kwargs:
+            self.return_message_handler = kwargs['return_message_handler']
+
+    """Handles starting of tests, returns status of tests etc."""
     def handle_get(self, host, user, *args):
         """Returns running test handlers"""
 
-        return {'duts': self.test_definitions.DUTS}
+        duts = self.test_control['progress']['duts']
+        for dut in duts:
+            duts[dut].pop('dut_class', None)
 
+        return json.dumps(duts, default=str)
+
+    def handle_post(self, json_args, host, user, *args):  # pylint: disable=W0613
+        """Sets dut types and serial numbers"""
+
+        if (self.test_control['get_sn_externally'] and
+            hasattr(self, 'return_message_handler')
+        ):
+            if not isinstance(json_args, list):
+                raise tornado.web.HTTPError(422, "Request body type must be a list of DUTs")
+            if len(json_args) > len(self.test_definitions.TEST_POSITIONS):
+                raise tornado.web.HTTPError(
+                    422,
+                    "Amount of defined DUTs must be less or equal to length of 'TEST_POSITIONS'"
+                )
+            if not any('type' in position for position in json_args):
+                raise tornado.web.HTTPError(
+                    422,
+                    "DUT type (sequence name) must be defined with key 'type'"
+                )
+            if not all(position.get("type") == json_args[0].get("type") for position in json_args):
+                raise tornado.web.HTTPError(
+                    422,
+                    "All DUTs' type (sequence name) must be the same"
+                )
+            if not any('SN' in position for position in json_args):
+                raise tornado.web.HTTPError(
+                    422,
+                    "At least one DUT SN must be defined with key 'SN'"
+                )
+
+            duts = {"sequence": None}
+            for idx, position in enumerate(json_args):
+                duts["sequence"] = position.get("type")
+                duts[str(self.test_definitions.TEST_POSITIONS[idx])] = position.get("SN")
+
+            if duts["sequence"] is None:
+                raise tornado.web.HTTPError(422, "Sequence name is not defined")
+            if duts["sequence"] not in self.test_definitions.TEST_SEQUENCES:
+                raise tornado.web.HTTPError(422, "Invalid sequence name")
+
+            self.return_message_handler.put(json.dumps(duts, default=str))
+        elif not hasattr(self, 'return_message_handler'):
+            raise tornado.web.HTTPError(500, "Listener return message handler is missing")
+        elif not self.test_control['get_sn_externally']:
+            raise tornado.web.HTTPError(422, "Test control 'SN_EXTERNALLY' is not selected")
+        else:
+            raise tornado.web.HTTPError(422, "Could not accept DUTs")
 
 class ProgressHandler(IrisRequestHandler):
     """Handles calls to /api/progress"""
@@ -188,6 +244,51 @@ class ProgressHandler(IrisRequestHandler):
 
         return json.dumps({'progress': self.test_control['progress']}, default=str)
 
+class TestTimeHandler(IrisRequestHandler):
+    """Handles returning current and remaining test times to /api/test_time"""
+
+    def handle_get(self, host, user, *args):
+        """Returns current and remaining test time as json"""
+
+        current_time = 0
+        if self.test_control['start_time_monotonic'] == 0:
+            current_time = 0
+        elif self.test_control['stop_time_monotonic'] == 0:
+            current_time = time.monotonic() - self.test_control['start_time_monotonic']
+        else:
+            current_time = (
+                self.test_control['stop_time_monotonic'] -
+                self.test_control['start_time_monotonic']
+            )
+        remaining_time = 0
+        if (
+            current_time != 0 and
+            self.test_control['test_time'] != 0 and
+            self.test_control['stop_time_monotonic'] == 0
+        ):
+            remaining_time = self.test_control['test_time'] - current_time
+        remaining_time = max(remaining_time, 0)
+
+        return json.dumps(
+            {
+                'current': f"{current_time:.3f}",
+                'remaining': f"{remaining_time:.3f}"
+            },
+            default=str
+        )
+
+class CurrentTestHandler(IrisRequestHandler):
+    """Handles returning current test per dut to /api/current_test"""
+
+    def handle_get(self, host, user, *args):
+        """Returns current test per dut as json"""
+
+        current_step = {}
+        duts = self.test_control['progress']['duts']
+        for dut in duts:
+            current_step[dut] = duts[dut]["step"]
+
+        return json.dumps(current_step, default=str)
 
 class UiEntryHandler(tornado.web.StaticFileHandler):
     """Handles returning the UI from all paths except /api"""
@@ -364,7 +465,9 @@ def create_listener(
             ),
             (r"/api", ApiRootHandler, init),
             (r"/login", LoginHandler, init),
-            (r"/api/duts", DutsHandler, init),
+            (r"/api/duts", DutsHandler,
+                {**init, 'return_message_handler': return_message_handler}
+            ),
             (r"/api/history/search_bar_items", HistorySearchItems, init),
             (r"/api/history/search", SearchHistoryHandler, init),
             (r"/api/progress", ProgressHandler, init),
@@ -377,6 +480,8 @@ def create_listener(
             (r"/api/testcontrol", TestRunnerHandler, init),
             (r"/api/testcontrol/([0-9]+)", TestRunnerHandler, init),
             (r"/logs", LogsHandler, init),
+            (r"/api/test_time", TestTimeHandler, init),
+            (r"/api/current_test", CurrentTestHandler, init),
             (
                 r"/api/download/(.*)",
                 tornado.web.StaticFileHandler,

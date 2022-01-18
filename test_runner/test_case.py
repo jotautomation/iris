@@ -4,6 +4,7 @@ import inspect
 import logging
 import datetime
 import time
+from threading import Barrier
 
 from enum import Enum
 from pymongo import MongoClient
@@ -40,6 +41,7 @@ class TestCase(ABC):
         self.name = self.__class__.__name__
         self.db_handler = db_handler
         self.my_ip = common_definitions.IRIS_IP
+        self.thread_barrier = None
         # Initialize measurement dictionary
         self.dut.test_cases[self.name] = {'id': id(self), 'result': 'testing', 'measurements': {}}
 
@@ -81,6 +83,30 @@ class TestCase(ABC):
     def stop_testing(self):
         """Stops testing before going to next test step"""
         self.test_position.stop_testing = True
+
+    def stop_looping(self):
+        """Stops testing before going to next test step"""
+        self.test_position.stop_looping = True
+
+    def sync_threads(self, timeout=None):
+        if self.thread_barrier is not None:
+            self.logger.debug("Thread barrier size: %s", self.thread_barrier.parties)
+            if self.thread_barrier.parties > 1:
+                self.logger.info(
+                    "Thread in mid test case for test position %s is waiting for %s other threads.",
+                    self.test_position.name,
+                    (
+                        self.thread_barrier.parties -
+                        self.thread_barrier.n_waiting
+                        - 1
+                    )
+                )
+            i_thread_wait = self.thread_barrier.wait(timeout)
+            if i_thread_wait == 0:
+                self.logger.info(
+                    "All threads have synced mid test case."
+                )
+                self.thread_barrier.reset()
 
     def result_handler(self, error=None):
         """Checks if test is pass or fail. Can be overridden if needed."""
@@ -206,6 +232,9 @@ class TestCase(ABC):
     def run_test(self):
         self.logger.debug("Running test at %s", self.name)
         self.test()
+        if self.thread_barrier is not None:
+            if self.thread_barrier.n_waiting > 0:
+                self.sync_threads()
         self.evaluate_results()
         self.logger.debug("Test done at %s", self.name)
 

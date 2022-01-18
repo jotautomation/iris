@@ -18,8 +18,27 @@ DB_HANDLER_NAME = 'test_data_db'
 
 FLOW_CONTROL = FlowControl.CONTINUE
 
+# PARALLEL, PER_DUT, PER_TEST_CASE
+PARALLEL_EXECUTION = 'PARALLEL'
+
+# MID, COMPLETED, BOTH
+PARALLEL_SYNC_PER_TEST_CASE = 'MID'
+
+# Thread syncing waiting timeout in seconds
+# Mid test case thread syncing timeout is defined in test cases
+PARALLEL_SYNC_COMPLETED_TEST_TIMEOUT = 10.0
+
+LOOP_EXECUTION = True
+
+LOOP_TIME_IN_SECONDS = 30 * 60
+
 # Wait DUT serial number from UI
 SN_FROM_UI = True
+
+SN_EXTERNALLY = True
+
+# Show operator introductions
+OPERATOR_INTRODUCTIONS = False
 
 # List of test sequences' directory names
 TEST_SEQUENCES = os.listdir('test_definitions/sequences')
