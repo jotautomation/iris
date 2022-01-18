@@ -104,10 +104,25 @@ def get_sn_from_ui(dut_sn_queue, logger):
         except (AttributeError, json.decoder.JSONDecodeError):
             pass
 
+        sequence_duts = None
+        test_definitions = helpers.get_test_definitions(sequence_name, logger)
+        if hasattr(test_definitions, 'DUTS'):
+            # TODO: Might import wrong sequence DUTS-attr
+            if isinstance(test_definitions.DUTS, int):
+                sequence_duts = test_definitions.DUTS
+
         # Loop until all test_positions have received a serial number
+        received_duts = 0
+        if sequence_duts is not None:
+            received_duts = len([duts_sn[dut]['sn'] for dut in duts_sn if duts_sn[dut]['sn']])
+
         for dut in duts_sn:
-            if not duts_sn[dut]['sn']:
-                break
+            if sequence_duts:
+                if received_duts < sequence_duts:
+                    break
+            else:
+                if not duts_sn[dut]['sn']:
+                    break
         else:
             logger.info("All DUT serial numbers received from UI")
             if sequence_name not in ['None', None]:
@@ -138,7 +153,7 @@ def get_sn_externally(dut_sn_queue, logger):
             test_position.name: {'sn': None} for test_position in common_definitions.TEST_POSITIONS
         }
         dut_count = 0
-        duts = 1
+        duts = len(common_definitions.TEST_POSITIONS)
         logger.info(
             'Wait SNs from external source for test_positions: '
             + ", ".join([str(t) for t in common_definitions.TEST_POSITIONS])
@@ -160,10 +175,11 @@ def get_sn_externally(dut_sn_queue, logger):
 
         test_definitions = helpers.get_test_definitions(sequence_name, logger)
         if hasattr(test_definitions, 'DUTS'):
+            # TODO: Might import wrong sequence DUTS-attr
             if isinstance(test_definitions.DUTS, int):
                 duts = test_definitions.DUTS
 
-        sns = [duts_sn[dut]['sn'] for dut in duts_sn.keys()]
+        sns = [duts_sn[dut]['sn'] for dut in duts_sn.keys() if duts_sn[dut]['sn']]
         unique_sns = set(sns)
 
         if sequence_name is None or sequence_name == "":
@@ -351,6 +367,8 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             for test_position, dut_info in dut_sn_values.items():
                 if dut_info is None:
                     test_positions[test_position].dut = None
+                elif "sn" in dut_info and dut_info["sn"] is None:
+                    test_positions[test_position].dut = None
                 else:
                     test_positions[test_position].dut = common_definitions.parse_dut_info(
                         dut_info, test_position
@@ -534,7 +552,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                     except Exception as err:
 
                         if isinstance(err, gaiaclient.GaiaError):
-                            logger.error("Gaia error catched, abort testing.")
+                            logger.error("Caught Gaia error, abort testing.")
                             test_control['abort'] = True
 
                         if sync_test_cases:
@@ -603,7 +621,10 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                     # Run test cases for each DUT in test position fully parallel
                     for test_position_name, test_position_instance in test_positions.items():
 
-                        if test_position_instance.stop_looping:
+                        if (
+                            test_position_instance.stop_looping
+                            or test_position_instance.dut is None
+                        ):
                             logger.info(
                                 "Skip position %s from test loop",
                                 test_position_instance.name
@@ -650,12 +671,17 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                     # all test cases are run first for one DUT and then continue to another
 
                     for test_position_name, test_position_instance in test_positions.items():
-                        if test_position_instance.stop_looping:
+
+                        if (
+                            test_position_instance.stop_looping
+                            or test_position_instance.dut is None
+                        ):
                             logger.info(
                                 "Skip position %s from test loop",
                                 test_position_instance.name
                             )
                             continue
+
                         parallel_run(
                             test_position_name,
                             test_position_instance,
@@ -694,11 +720,11 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
 
             for test_position_name, test_position_instance in test_positions.items():
 
-                dut = test_position_instance.dut
-                results[dut.serial_number] = test_position_instance.dut.test_cases
-
                 if not test_position_instance.dut:
                     continue
+
+                dut = test_position_instance.dut
+                results[dut.serial_number] = dut.test_cases
 
                 if test_control['abort']:
                     dut.pass_fail_result = 'abort'
