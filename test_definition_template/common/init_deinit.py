@@ -5,7 +5,7 @@ def boot_up(instruments, logger):
     logger.info("Executing initialization")
 
 
-def finalize_test(overallresult, duts, instruments, logger):
+def finalize_test(overallresult, duts, instruments, logger, sequence_name):
     logger.info("Testing ready. Release DUT(s) on Gaia")
 
     if overallresult == 'pass':
@@ -30,7 +30,7 @@ def prepare_loop(instruments, logger, duts, sequence_name):
 def finalize_loop(instruments, logger, duts, sequence_name):
     pass
 
-def identify_DUTs(dut_sn, instruments, logger):
+def identify_DUTs(dut_sn, instruments, test_run_id, logger):
     import uuid
 
     # Figure out DUT sn (probably with code reader), find out what

@@ -103,7 +103,6 @@ def get_sn_from_ui(dut_sn_queue, logger):
 
         except (AttributeError, json.decoder.JSONDecodeError):
             pass
-
         sequence_duts = None
         test_definitions = helpers.get_test_definitions(sequence_name, logger)
         if hasattr(test_definitions, 'DUTS'):
@@ -311,6 +310,11 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             if common_definitions.LOOP_EXECUTION is True:
                 test_control['test_time'] = common_definitions.LOOP_TIME_IN_SECONDS
 
+            start_time_epoch = time.time()
+            start_time = datetime.datetime.now()
+            start_time_monotonic = time.monotonic()
+            test_run_id = str(start_time_epoch).replace('.', '_')
+
             # DUT sn may come from UI
             if test_control['get_sn_from_ui']:
 
@@ -324,8 +328,14 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                     gage_rr
                 ) = get_sn_from_ui(dut_sn_queue, logger)
 
+                if test_control['abort']:
+
+                    send_message("Test aborted")
+                    logger.warning("Test aborted")
+                    continue
+
                 sequence_name_from_identify = common_definitions.identify_DUTs(
-                    dut_sn_values, common_definitions.INSTRUMENTS, logger
+                    dut_sn_values, common_definitions.INSTRUMENTS, test_run_id, logger
                 )
 
                 # If sequence was not selected, get it from identify_DUTs
@@ -357,7 +367,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             else:
                 # Or from identify_DUTs function
                 (dut_sn_values, sequence_name, operator_info,) = common_definitions.identify_DUTs(
-                    None, common_definitions.INSTRUMENTS, logger
+                    None, common_definitions.INSTRUMENTS, test_run_id, logger
                 )
 
             common_definitions.prepare_test(
@@ -389,10 +399,6 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             # Remove skipped test_case_names from test list
             test_case_names = [t for t in test_definitions.TESTS if t not in test_definitions.SKIP]
 
-            start_time_epoch = time.time()
-            start_time = datetime.datetime.now()
-            start_time_monotonic = time.monotonic()
-            test_run_id = str(start_time_epoch).replace('.', '_')
             test_control['start_time_monotonic'] = start_time_monotonic
             test_control['stop_time_monotonic'] = 0
 
@@ -767,7 +773,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                     overall_result=dut.pass_fail_result,
                     sequence_name=sequence_name,
                 )
-                common_definitions.test_aborted(common_definitions.INSTRUMENTS, logger)
+                common_definitions.test_aborted(common_definitions.INSTRUMENTS, logger, sequence_name)
                 continue
 
             progress.set_progress(
@@ -777,7 +783,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                 sequence_name=sequence_name,
             )
             common_definitions.finalize_test(
-                dut.pass_fail_result, test_positions, common_definitions.INSTRUMENTS, logger
+                dut.pass_fail_result, test_positions, common_definitions.INSTRUMENTS, logger, sequence_name
             )
 
             results["start_time"] = start_time
