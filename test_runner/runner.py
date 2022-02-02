@@ -105,11 +105,12 @@ def get_sn_from_ui(dut_sn_queue, logger):
             pass
 
         sequence_duts = None
-        test_definitions = helpers.get_test_definitions(sequence_name, logger)
-        if hasattr(test_definitions, 'DUTS'):
-            # TODO: Might import wrong sequence DUTS-attr
-            if isinstance(test_definitions.DUTS, int):
-                sequence_duts = test_definitions.DUTS
+        if sequence_name is not None:
+            test_definitions = helpers.get_test_definitions(sequence_name, logger)
+            if hasattr(test_definitions, 'DUTS'):
+                # TODO: Might import wrong sequence DUTS-attr
+                if isinstance(test_definitions.DUTS, int):
+                    sequence_duts = test_definitions.DUTS
 
         # Loop until all test_positions have received a serial number
         received_duts = 0
@@ -164,7 +165,8 @@ def get_sn_externally(dut_sn_queue, logger):
             msg = json.loads(msg)
 
             for dut in msg:
-                if dut in duts_sn and msg[dut]:
+                if dut in duts_sn:
+                    logger.info("Received DUT pos. %s SN is %s", dut, msg[dut])
                     duts_sn[dut]['sn'] = msg[dut]
                     dut_count += 1
             if 'sequence' in msg:
@@ -182,7 +184,9 @@ def get_sn_externally(dut_sn_queue, logger):
         sns = [duts_sn[dut]['sn'] for dut in duts_sn.keys() if duts_sn[dut]['sn']]
         unique_sns = set(sns)
 
-        if sequence_name is None or sequence_name == "":
+        if len(sns) == 0:
+            logger.error("At least one SN must be defined")
+        elif sequence_name is None or sequence_name == "":
             logger.error("Sequence name is not defined")
         elif duts != dut_count:
             logger.error("DUT count mismatch. Excepted count %s, received count %s",
