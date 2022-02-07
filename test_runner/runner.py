@@ -371,7 +371,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             for test_position, dut_info in dut_sn_values.items():
                 if dut_info is None:
                     test_positions[test_position].dut = None
-                elif "sn" in dut_info and dut_info["sn"] is None:
+                elif "sn" in dut_info and (dut_info["sn"] is None or dut_info["sn"] == "null"):
                     test_positions[test_position].dut = None
                 else:
                     test_positions[test_position].dut = common_definitions.parse_dut_info(
