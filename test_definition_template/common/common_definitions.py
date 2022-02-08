@@ -35,7 +35,10 @@ LOOP_TIME_IN_SECONDS = 30 * 60
 # Wait DUT serial number from UI
 SN_FROM_UI = True
 
+# Wait DUT from external source
 SN_EXTERNALLY = False
+# Use Gaia client as external source
+SN_FROM_GAIA = False
 
 # Show operator introductions
 OPERATOR_INTRODUCTIONS = False

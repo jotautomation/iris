@@ -148,6 +148,30 @@ def get_sn_externally(dut_sn_queue, logger):
 
     common_definitions = get_common_definitions()
 
+    gaia = None
+    if hasattr(common_definitions, 'SN_FROM_GAIA'):
+        if common_definitions.SN_FROM_GAIA:
+            for instrument in common_definitions.INSTRUMENTS.values():
+                if isinstance(instrument, gaiaclient.Client):
+                    gaia = instrument
+                    break
+
+    def _get_sn_from_gaia():
+        while True:
+            if len(gaia.duts) > 0:
+                logger.info("Gaia client has DUTs %s", gaia.duts)
+                duts_from_gaia = {"sequence": None}
+                for idx, position in enumerate(gaia.duts):
+                    for seq in common_definitions.TEST_SEQUENCES:
+                        if seq in position.get("type"):
+                            duts_from_gaia["sequence"] = seq
+                            break
+                    duts_from_gaia[str(common_definitions.TEST_POSITIONS[idx])] = position.get("SN")
+                logger.info("Gaia client DUTs modified for Iris: %s", duts_from_gaia)
+                dut_sn_queue.put(json.dumps(duts_from_gaia, default=str))
+                break
+            time.sleep(1)
+
     while True:
         sequence_name = None
         duts_sn = {
@@ -159,6 +183,9 @@ def get_sn_externally(dut_sn_queue, logger):
             'Wait SNs from external source for test_positions: '
             + ", ".join([str(t) for t in common_definitions.TEST_POSITIONS])
         )
+
+        if gaia:
+            _get_sn_from_gaia()
 
         msg = dut_sn_queue.get()
         try:
