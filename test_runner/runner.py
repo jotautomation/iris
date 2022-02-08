@@ -656,6 +656,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                             test_position_instance.stop_looping
                             or test_position_instance.dut is None
                         ):
+                            test_position_instance.stop_looping = True
                             logger.info(
                                 "Skip position %s from test loop",
                                 test_position_instance.name
@@ -707,6 +708,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                             test_position_instance.stop_looping
                             or test_position_instance.dut is None
                         ):
+                            test_position_instance.stop_looping = True
                             logger.info(
                                 "Skip position %s from test loop",
                                 test_position_instance.name
