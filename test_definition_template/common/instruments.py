@@ -43,7 +43,7 @@ def handle_instrument_status(progress, logger):
 
     def _connect_to_gaia(logger):
         try:
-            INSTRUMENTS['gaia'] = gaiaclient.Client(gaiaclient.Client("http://localhost:1234"))
+            INSTRUMENTS['gaia'] = gaiaclient.Client("http://localhost:1234")
 
         except requests.exceptions.ConnectionError as e:
             return "Connection error"
