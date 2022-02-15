@@ -73,6 +73,7 @@ def get_sn_from_ui(dut_sn_queue, logger):
     duts_sn = {
         test_position.name: {'sn': None} for test_position in common_definitions.TEST_POSITIONS
     }
+    print("duts_sn: " + str(duts_sn))
     logger.info(
         'Wait SNs from UI for test_positions: '
         + ", ".join([str(t) for t in common_definitions.TEST_POSITIONS])
@@ -103,9 +104,8 @@ def get_sn_from_ui(dut_sn_queue, logger):
 
         except (AttributeError, json.decoder.JSONDecodeError):
             pass
-
         sequence_duts = None
-        if sequence_name is not None:
+        if sequence_name:
             test_definitions = helpers.get_test_definitions(sequence_name, logger)
             if hasattr(test_definitions, 'DUTS'):
                 # TODO: Might import wrong sequence DUTS-attr
@@ -127,6 +127,7 @@ def get_sn_from_ui(dut_sn_queue, logger):
         else:
             logger.info("All DUT serial numbers received from UI")
             if sequence_name not in ['None', None]:
+                print("duts_sn: " + str(duts_sn))
                 logger.info("Selected test %s", sequence_name)
             else:
                 logger.info("No selected sequence from UI.")
@@ -148,30 +149,6 @@ def get_sn_externally(dut_sn_queue, logger):
 
     common_definitions = get_common_definitions()
 
-    gaia = None
-    if hasattr(common_definitions, 'SN_FROM_GAIA'):
-        if common_definitions.SN_FROM_GAIA:
-            for instrument in common_definitions.INSTRUMENTS.values():
-                if isinstance(instrument, gaiaclient.Client):
-                    gaia = instrument
-                    break
-
-    def _get_sn_from_gaia():
-        while True:
-            if len(gaia.duts) > 0:
-                logger.info("Gaia client has DUTs %s", gaia.duts)
-                duts_from_gaia = {"sequence": None}
-                for idx, position in enumerate(gaia.duts):
-                    for seq in common_definitions.TEST_SEQUENCES:
-                        if seq in position.get("type"):
-                            duts_from_gaia["sequence"] = seq
-                            break
-                    duts_from_gaia[str(common_definitions.TEST_POSITIONS[idx])] = position.get("SN")
-                logger.info("Gaia client DUTs modified for Iris: %s", duts_from_gaia)
-                dut_sn_queue.put(json.dumps(duts_from_gaia, default=str))
-                break
-            time.sleep(1)
-
     while True:
         sequence_name = None
         duts_sn = {
@@ -184,16 +161,12 @@ def get_sn_externally(dut_sn_queue, logger):
             + ", ".join([str(t) for t in common_definitions.TEST_POSITIONS])
         )
 
-        if gaia:
-            _get_sn_from_gaia()
-
         msg = dut_sn_queue.get()
         try:
             msg = json.loads(msg)
 
             for dut in msg:
-                if dut in duts_sn:
-                    logger.info("Received DUT pos. %s SN is %s", dut, msg[dut])
+                if dut in duts_sn and msg[dut]:
                     duts_sn[dut]['sn'] = msg[dut]
                     dut_count += 1
             if 'sequence' in msg:
@@ -211,9 +184,7 @@ def get_sn_externally(dut_sn_queue, logger):
         sns = [duts_sn[dut]['sn'] for dut in duts_sn.keys() if duts_sn[dut]['sn']]
         unique_sns = set(sns)
 
-        if len(sns) == 0:
-            logger.error("At least one SN must be defined")
-        elif sequence_name is None or sequence_name == "":
+        if sequence_name is None or sequence_name == "":
             logger.error("Sequence name is not defined")
         elif duts != dut_count:
             logger.error("DUT count mismatch. Excepted count %s, received count %s",
@@ -342,6 +313,11 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             if common_definitions.LOOP_EXECUTION is True:
                 test_control['test_time'] = common_definitions.LOOP_TIME_IN_SECONDS
 
+            start_time_epoch = time.time()
+            start_time = datetime.datetime.now()
+            start_time_monotonic = time.monotonic()
+            test_run_id = str(start_time_epoch).replace('.', '_')
+
             # DUT sn may come from UI
             if test_control['get_sn_from_ui']:
 
@@ -355,8 +331,14 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                     gage_rr
                 ) = get_sn_from_ui(dut_sn_queue, logger)
 
+                if test_control['abort']:
+
+                    send_message("Test aborted")
+                    logger.warning("Test aborted")
+                    continue
+
                 sequence_name_from_identify = common_definitions.identify_DUTs(
-                    dut_sn_values, common_definitions.INSTRUMENTS, logger
+                    dut_sn_values, common_definitions.INSTRUMENTS, test_run_id, logger
                 )
 
                 # If sequence was not selected, get it from identify_DUTs
@@ -388,7 +370,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             else:
                 # Or from identify_DUTs function
                 (dut_sn_values, sequence_name, operator_info,) = common_definitions.identify_DUTs(
-                    None, common_definitions.INSTRUMENTS, logger
+                    None, common_definitions.INSTRUMENTS, test_run_id, logger
                 )
 
             common_definitions.prepare_test(
@@ -398,7 +380,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             for test_position, dut_info in dut_sn_values.items():
                 if dut_info is None:
                     test_positions[test_position].dut = None
-                elif "sn" in dut_info and (dut_info["sn"] is None or dut_info["sn"] == "null"):
+                elif "sn" in dut_info and dut_info["sn"] is None:
                     test_positions[test_position].dut = None
                 else:
                     test_positions[test_position].dut = common_definitions.parse_dut_info(
@@ -420,10 +402,6 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             # Remove skipped test_case_names from test list
             test_case_names = [t for t in test_definitions.TESTS if t not in test_definitions.SKIP]
 
-            start_time_epoch = time.time()
-            start_time = datetime.datetime.now()
-            start_time_monotonic = time.monotonic()
-            test_run_id = str(start_time_epoch).replace('.', '_')
             test_control['start_time_monotonic'] = start_time_monotonic
             test_control['stop_time_monotonic'] = 0
 
@@ -656,7 +634,6 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                             test_position_instance.stop_looping
                             or test_position_instance.dut is None
                         ):
-                            test_position_instance.stop_looping = True
                             logger.info(
                                 "Skip position %s from test loop",
                                 test_position_instance.name
@@ -708,7 +685,6 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                             test_position_instance.stop_looping
                             or test_position_instance.dut is None
                         ):
-                            test_position_instance.stop_looping = True
                             logger.info(
                                 "Skip position %s from test loop",
                                 test_position_instance.name
@@ -800,7 +776,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                     overall_result=dut.pass_fail_result,
                     sequence_name=sequence_name,
                 )
-                common_definitions.test_aborted(common_definitions.INSTRUMENTS, logger)
+                common_definitions.test_aborted(common_definitions.INSTRUMENTS, logger, sequence_name)
                 continue
 
             progress.set_progress(
@@ -810,7 +786,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                 sequence_name=sequence_name,
             )
             common_definitions.finalize_test(
-                dut.pass_fail_result, test_positions, common_definitions.INSTRUMENTS, logger
+                dut.pass_fail_result, test_positions, common_definitions.INSTRUMENTS, logger, sequence_name
             )
 
             results["start_time"] = start_time

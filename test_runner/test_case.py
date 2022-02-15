@@ -9,6 +9,7 @@ from threading import Barrier
 from enum import Enum
 from pymongo import MongoClient
 from pathlib import Path
+import shutil
 
 
 class FlowControl(Enum):
@@ -296,7 +297,8 @@ class TestCase(ABC):
         dest_path = Path(report_path, 'file_attachments')
         dest_path.mkdir(parents=True, exist_ok=True)
         dest_path = dest_path / unique_dest_name
-        Path(source_file_path).rename(dest_path)
+        # Path(source_file_path).rename(dest_path)
+        shutil.copy(source_file_path, dest_path)
 
         data = {
             'name': dest_name,
@@ -319,6 +321,7 @@ class TestCase(ABC):
 
         self.dut.test_cases[self.name]['media'].append(data)
 
+    
     def _store_test_data_file_to_db(self, data):
         if self.db_handler:
             self.db_handler.store_test_data_file_to_db(**data)
