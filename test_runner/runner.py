@@ -374,7 +374,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                 )
 
             common_definitions.prepare_test(
-                common_definitions.INSTRUMENTS, logger, dut_sn_values, sequence_name
+                common_definitions.INSTRUMENTS, logger, dut_sn_values, sequence_name, running_mode
             )
             # Create dut instances
             for test_position, dut_info in dut_sn_values.items():
