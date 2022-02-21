@@ -21,6 +21,22 @@ def create_report(
     if common_definitions.OPERATOR_INTRODUCTIONS:
         progress_reporter.show_operator_instructions("Take finished DUT away from tester.")
 
+    filename = '_'.join(
+        [
+            '%s-%s' % (test_position_name, test_position_value.dut.serial_number)
+            for (test_position_name, test_position_value) in test_positions.items()
+            if test_position_value.dut is not None
+        ]
+    )
+
+    report_path = create_report_path()
+
+    report_file_path = report_path / (filename + '.html')
+
+    report_file_path.write_text(json2html.json2html.convert(json=report_json))
+
+    # remove_old_reports()
+
     # Get root level items on report
     root_items = {}
 
@@ -50,21 +66,33 @@ def create_report(
 
             # Add also root level items
             result_db.update(root_items)
-            local_db.db_client[local_db.db_name].test_reports.insert_one(result_db)
 
-    filename = '_'.join(
-        [
-            '%s-%s' % (test_position_name, test_position_value.dut.serial_number)
-            for (test_position_name, test_position_value) in test_positions.items()
-        ]
+            if local_db is not None:
+                local_db.db_client[local_db.db_name].test_reports.insert_one(result_db)
+
+def remove_old_reports(timespan=7*24*60*60):
+    report_base_path = (
+        pathlib.Path.cwd() / 'results'
     )
 
-    report_path = create_report_path()
+    remove_tree(report_base_path, timespan)
 
-    report_file_path = report_path / (filename + '.html')
+def remove_tree(path, timespan):
+    if timespan <= 0:
+        return
 
-    report_file_path.write_text(json2html.json2html.convert(json=report_json))
-
+    path = pathlib.Path(path)
+    for child in path.glob('*'):
+        if child.is_file():
+            time_diff = datetime.datetime.now().timestamp() - child.stat().st_mtime
+            if time_diff > timespan:
+                child.unlink()
+        else:
+            remove_tree(child, timespan)
+    try:
+        path.rmdir()
+    except OSError:
+        pass
 
 def create_report_path():
     current = datetime.datetime.now()
