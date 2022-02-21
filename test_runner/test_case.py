@@ -48,6 +48,9 @@ class TestCase(ABC):
     def show_operator_instructions(self, message, append=False):
         self.report_progress.show_operator_instructions(message, append)
 
+    def initialize_measurements(self):
+        self.dut.test_cases[self.name] = {'id': id(self), 'result': 'testing', 'measurements': {}}
+
     @abstractmethod
     def test(self):
         """Defines the test case."""
@@ -225,6 +228,8 @@ class TestCase(ABC):
         self.logger.debug("Running pre_test at %s", self.name)
         self.start_time = datetime.datetime.now()
         self.start_time_monotonic = time.monotonic()
+        self.logger.debug("Initialize measurements dict for %s", self.name)
+        self.initialize_measurements()
         self.pre_test()
         self.evaluate_results()
         self.logger.debug("Pre_test done at %s", self.name)
