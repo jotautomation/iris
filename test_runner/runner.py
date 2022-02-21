@@ -163,9 +163,14 @@ def get_sn_externally(dut_sn_queue, logger):
                 duts_from_gaia = {"sequence": None}
                 for idx, position in enumerate(gaia.duts):
                     for seq in common_definitions.TEST_SEQUENCES:
-                        if seq in position.get("type"):
+                        if seq == position.get("type"):
                             duts_from_gaia["sequence"] = seq
                             break
+                    if not duts_from_gaia["sequence"]:
+                        for seq in common_definitions.TEST_SEQUENCES:
+                            if seq in position.get("type"):
+                                duts_from_gaia["sequence"] = seq
+                                break
                     duts_from_gaia[str(common_definitions.TEST_POSITIONS[idx])] = position.get("SN")
                 logger.info("Gaia client DUTs modified for Iris: %s", duts_from_gaia)
                 dut_sn_queue.put(json.dumps(duts_from_gaia, default=str))
@@ -635,6 +640,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                     task.join()
 
             loop_testing = True  # Execute at least one loop
+            loop_cycle = 1
             while loop_testing:
                 loop_testing = common_definitions.LOOP_EXECUTION is True
                 logger.info("Start %s.", "test loop" if loop_testing else "test")
@@ -643,7 +649,15 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                 all_pos_test_cases_completed = None
                 all_pos_mid_test_cases_completed = None
 
+                loop_start_time_epoch = time.time()
+                loop_start_time = datetime.datetime.now()
+                loop_start_time_monotonic = time.monotonic()
+                loop_test_run_id = str(loop_start_time_epoch).replace('.', '_')
+
                 if loop_testing:
+                    loop_start_text = f"Start loop cycle {loop_cycle}"
+                    logger.info(loop_start_text)
+                    send_message(loop_start_text)
                     common_definitions.prepare_loop(
                         common_definitions.INSTRUMENTS, logger, test_positions, sequence_name
                     )
@@ -724,12 +738,88 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                 else:
                     raise Exception("Unknown test test_control.parallel_execution parameter")
 
+                for test_position_name, test_position_instance in test_positions.items():
+
+                    if not test_position_instance.dut:
+                        continue
+
+                    dut = test_position_instance.dut
+                    if dut.serial_number not in results:
+                        results[dut.serial_number] = {}
+                    results[dut.serial_number][loop_cycle] = dut.test_cases.copy()
+
+                    loop_stats = {}
+                    loop_stats["start_time"] = str(loop_start_time)
+                    loop_stats["start_time_epoch"] = str(loop_start_time_epoch)
+                    loop_stats["end_time"] = str(datetime.datetime.now())
+                    loop_stats["test_run_id"] = str(loop_test_run_id)
+                    loop_stats["duration_s"] = str(round(time.monotonic() - loop_start_time_monotonic, 2))
+                    results[dut.serial_number][loop_cycle]['loop'] = loop_stats.copy()
+
+                    if test_control['abort']:
+                        dut.pass_fail_result = 'abort'
+
+                    if dut.pass_fail_result == 'error':
+                        errors = [
+                            f"{case_name}: {case['error']}"
+                            for case_name, case in dut.test_cases.items()
+                            if case['result'] == 'error' and 'error' in case
+                        ]
+
+                        send_message(f"{dut.serial_number}: ERROR: " + ', '.join(errors))
+                        test_position_instance.test_status = 'error'
+                    elif dut.pass_fail_result == 'pass':
+                        send_message(f"{dut.serial_number}: PASSED")
+                        test_position_instance.test_status = 'pass'
+                        pass_count = pass_count + 1
+                    else:
+                        send_message(f"{dut.serial_number}: FAILED: {', '.join(dut.failed_steps)}")
+                        test_position_instance.test_status = 'fail'
+
+                        if fail_reason_history == dut.failed_steps:
+                            fail_reason_count = fail_reason_count + 1
+                        else:
+                            fail_reason_count = 0
+                            fail_reason_history = dut.failed_steps
+                        pass_count = 0
+
+                if fail_reason_count > 4 and pass_count < 5:
+                    send_message(f"WARNING: 5 or more consecutive fails on {fail_reason_history}")
+
+                results["start_time"] = start_time
+                results["start_time_epoch"] = start_time_epoch
+                results["end_time"] = datetime.datetime.now()
+                results["test_run_id"] = test_run_id
+                results["running_mode"] = running_mode
+                results["duration_s"] = round(time.monotonic() - start_time_monotonic, 2)
+
+                try:
+                    if not test_control['report_off']:
+                        common_definitions.create_report(
+                            json.dumps(results, indent=4, default=str),
+                            results,
+                            test_positions,
+                            test_definitions.PARAMETERS,
+                            db_handler,
+                            common_definitions,
+                            progress,
+                            loop_cycle
+                        )
+                except Exception as e:
+                    progress.set_progress(general_state="Error")
+                    send_message("Error while generating a test report")
+                    send_message(str(e))
+                    logger.error("Error while generating a test report")
+                    logger.exception(e)
+
                 if loop_testing:
                     common_definitions.finalize_loop(
                         common_definitions.INSTRUMENTS, logger, test_positions, sequence_name
                     )
                     loop_testing = any(
-                        not position.stop_looping for position in list(test_positions.values())
+                        (not position.stop_looping and not position.stop_testing)
+                        for position in list(test_positions.values())
+                        if position.dut is not None
                     )
                     if not loop_testing:
                         logger.info("All test positions have stopped loop testing.")
@@ -748,46 +838,48 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                             )
                     if not loop_testing:
                         logger.info("End loop testing.")
+                    loop_cycle += 1
                 if test_control['abort']:
                     loop_testing = False
 
-            for test_position_name, test_position_instance in test_positions.items():
+            if not common_definitions.LOOP_EXECUTION:
+                for test_position_name, test_position_instance in test_positions.items():
 
-                if not test_position_instance.dut:
-                    continue
+                    if not test_position_instance.dut:
+                        continue
 
-                dut = test_position_instance.dut
-                results[dut.serial_number] = dut.test_cases
+                    dut = test_position_instance.dut
+                    results[dut.serial_number] = dut.test_cases
 
-                if test_control['abort']:
-                    dut.pass_fail_result = 'abort'
+                    if test_control['abort']:
+                        dut.pass_fail_result = 'abort'
 
-                if dut.pass_fail_result == 'error':
-                    errors = [
-                        f"{case_name}: {case['error']}"
-                        for case_name, case in dut.test_cases.items()
-                        if case['result'] == 'error' and 'error' in case
-                    ]
+                    if dut.pass_fail_result == 'error':
+                        errors = [
+                            f"{case_name}: {case['error']}"
+                            for case_name, case in dut.test_cases.items()
+                            if case['result'] == 'error' and 'error' in case
+                        ]
 
-                    send_message(f"{dut.serial_number}: ERROR: " + ', '.join(errors))
-                    test_position_instance.test_status = 'error'
-                elif dut.pass_fail_result == 'pass':
-                    send_message(f"{dut.serial_number}: PASSED")
-                    test_position_instance.test_status = 'pass'
-                    pass_count = pass_count + 1
-                else:
-                    send_message(f"{dut.serial_number}: FAILED: {', '.join(dut.failed_steps)}")
-                    test_position_instance.test_status = 'fail'
-
-                    if fail_reason_history == dut.failed_steps:
-                        fail_reason_count = fail_reason_count + 1
+                        send_message(f"{dut.serial_number}: ERROR: " + ', '.join(errors))
+                        test_position_instance.test_status = 'error'
+                    elif dut.pass_fail_result == 'pass':
+                        send_message(f"{dut.serial_number}: PASSED")
+                        test_position_instance.test_status = 'pass'
+                        pass_count = pass_count + 1
                     else:
-                        fail_reason_count = 0
-                        fail_reason_history = dut.failed_steps
-                    pass_count = 0
+                        send_message(f"{dut.serial_number}: FAILED: {', '.join(dut.failed_steps)}")
+                        test_position_instance.test_status = 'fail'
 
-            if fail_reason_count > 4 and pass_count < 5:
-                send_message(f"WARNING: 5 or more consecutive fails on {fail_reason_history}")
+                        if fail_reason_history == dut.failed_steps:
+                            fail_reason_count = fail_reason_count + 1
+                        else:
+                            fail_reason_count = 0
+                            fail_reason_history = dut.failed_steps
+                        pass_count = 0
+
+                if fail_reason_count > 4 and pass_count < 5:
+                    send_message(f"WARNING: 5 or more consecutive fails on {fail_reason_history}")
 
             test_control['stop_time_monotonic'] = time.monotonic()
 
@@ -865,7 +957,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             sequence_name=sequence_name,
         )
         try:
-            if not test_control['report_off']:
+            if not test_control['report_off'] and not common_definitions.LOOP_EXECUTION:
                 common_definitions.create_report(
                     json.dumps(results, indent=4, default=str),
                     results,
@@ -874,6 +966,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                     db_handler,
                     common_definitions,
                     progress,
+                    0,
                 )
         except Exception as e:
             progress.set_progress(general_state="Error")

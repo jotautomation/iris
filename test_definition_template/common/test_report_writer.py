@@ -15,6 +15,7 @@ def create_report(
     local_db,
     common_definitions,
     progress_reporter,
+    loop_cycle=0,
 ):
     """Creates and stores report for DUT(s)"""
 
@@ -54,6 +55,10 @@ def create_report(
 
             result_db = {'serialnumber': dut_sn}
 
+            result_db['loop_cycle'] = str(loop_cycle)
+
+            result_db['position'] = str(dut.test_position)
+
             result_db['result'] = dut.pass_fail_result
 
             result_db['failedCases'] = dut.failed_steps
@@ -61,8 +66,39 @@ def create_report(
             result_db['passedCases'] = [
                 case_name for case_name, case in dut.test_cases.items() if case['result']
             ]
+            result_db['errorCases'] = [
+                case_name
+                for case_name, case in dut.test_cases.items()
+                if case['result'] == 'error'
+            ]
             # The actual results
-            result_db['testCases'] = report_dict[dut_sn]
+            result_db['testCases'] = []
+
+            test_case_items = report_dict[dut_sn].items() if loop_cycle == 0 else report_dict[dut_sn][loop_cycle].items()
+
+            for test_case_name, test_case in test_case_items:
+                if test_case_name == 'loop':
+                    continue
+                measurements = []
+                for measurement_name, measurement in test_case['measurements'].items():
+                    measurements.append(
+                        {
+                            'name': measurement_name,
+                            'limit': measurement['limit'],
+                            'measurement': measurement['measurement'],
+                            'unit': measurement['unit'],
+                            'result': measurement['result'],
+                        }
+                    )
+                result_db['testCases'].append(
+                    {
+                        'name': test_case_name,
+                        'measurements': measurements,
+                        'startTime': test_case['start_time'],
+                        'endTime': test_case['end_time'],
+                        'duration': test_case['duration_s'],
+                    }
+                )
 
             # Add also root level items
             result_db.update(root_items)
