@@ -412,6 +412,32 @@ class LogsHandler(IrisRequestHandler):
             os.remove(self._filename + '.zip')
 
 
+class ResultsHandler(IrisRequestHandler):
+    _filename = ''
+
+    def get(self, *args):
+        self._filename = 'results_' + time.strftime("%Y%m%d-%H%M%S")
+        self.set_header('Content-Type', 'application/force-download')
+        self.set_header('Content-Disposition', 'attachment; filename=%s' % self._filename + '.zip')
+        shutil.make_archive(self._filename, 'zip', 'results/')
+        with open(os.path.join(self._filename + '.zip'), "rb") as _f:
+            try:
+                while True:
+                    _buffer = _f.read(4096)
+                    if _buffer:
+                        self.write(_buffer)
+                    else:
+                        _f.close()
+                        self.finish()
+                        return
+            except:
+                raise tornado.web.HTTPError(404, "Results files not found")
+
+    def on_finish(self):
+        if os.path.exists(self._filename + '.zip'):
+            os.remove(self._filename + '.zip')
+
+
 class MediaFileHandler(tornado.web.StaticFileHandler):
     def initialize(self, listener_args, path, **kwargs):
         """Initialize is called when tornado.web.Application is created"""
@@ -480,6 +506,7 @@ def create_listener(
             (r"/api/testcontrol", TestRunnerHandler, init),
             (r"/api/testcontrol/([0-9]+)", TestRunnerHandler, init),
             (r"/logs", LogsHandler, init),
+            (r"/results", ResultsHandler, init),
             (r"/api/test_time", TestTimeHandler, init),
             (r"/api/current_test", CurrentTestHandler, init),
             (
