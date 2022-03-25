@@ -268,11 +268,13 @@ class TestTimeHandler(IrisRequestHandler):
         ):
             remaining_time = self.test_control['test_time'] - current_time
         remaining_time = max(remaining_time, 0)
+        end_time = self.test_control['stop_time_timestamp']
 
         return json.dumps(
             {
                 'current': f"{current_time:.3f}",
-                'remaining': f"{remaining_time:.3f}"
+                'remaining': f"{remaining_time:.3f}",
+                'end_time': f"{end_time}"
             },
             default=str
         )

@@ -55,6 +55,7 @@ def get_test_control(logger):
         'dry_run': False,
         'start_time_monotonic': 0,
         'stop_time_monotonic': 0,
+        'stop_time_timestamp': '',
         'test_time': 0,
         'test_cases': get_test_cases(logger),
     }
@@ -431,6 +432,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             test_run_id = str(start_time_epoch).replace('.', '_')
             test_control['start_time_monotonic'] = start_time_monotonic
             test_control['stop_time_monotonic'] = 0
+            test_control['stop_time_timestamp'] = ''
 
             logger.info("Running mode: %s", running_mode)
             if 'gage' in running_mode.lower():
@@ -882,6 +884,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                     send_message(f"WARNING: 5 or more consecutive fails on {fail_reason_history}")
 
             test_control['stop_time_monotonic'] = time.monotonic()
+            test_control['stop_time_timestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
             # Don't create report if aborted
             if test_control['abort']:
