@@ -190,7 +190,7 @@ def get_sn_externally(dut_sn_queue, logger):
             + ", ".join([str(t) for t in common_definitions.TEST_POSITIONS])
         )
 
-        if gaia:
+        if gaia is not None:
             _get_sn_from_gaia()
 
         msg = dut_sn_queue.get()
@@ -221,7 +221,7 @@ def get_sn_externally(dut_sn_queue, logger):
             logger.error("At least one SN must be defined")
         elif sequence_name is None or sequence_name == "":
             logger.error("Sequence name is not defined")
-        elif duts != dut_count:
+        elif dut_count > duts:
             logger.error("DUT count mismatch. Excepted count %s, received count %s",
                 duts,
                 dut_count
