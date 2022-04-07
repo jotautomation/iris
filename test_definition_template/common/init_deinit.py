@@ -52,6 +52,11 @@ def identify_DUTs(dut_sn, instruments, logger):
         {"name": "John Doe"},
     )
 
+def update_parameters(common_definitions, logger):
+    pass
+
+def update_test_case_params(common_definitions, sequence_name, test_definitions, logger):
+    pass
 
 def shutdown(instruments, logger):
     logger.info("Shutdown")
