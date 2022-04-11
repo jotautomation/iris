@@ -214,7 +214,11 @@ def get_sn_externally(dut_sn_queue, logger):
             if isinstance(test_definitions.DUTS, int):
                 duts = test_definitions.DUTS
 
-        sns = [duts_sn[dut]['sn'] for dut in duts_sn.keys() if duts_sn[dut]['sn']]
+        sns = [
+            duts_sn[dut]["sn"]
+            for dut in duts_sn.keys()
+            if duts_sn[dut]["sn"] not in [None, "null"]
+        ]
         unique_sns = set(sns)
 
         if len(sns) == 0:
