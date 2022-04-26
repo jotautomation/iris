@@ -61,13 +61,20 @@ def get_test_control(logger):
     }
 
 
-def get_sn_from_ui(dut_sn_queue, logger):
+def update_test_control(test_control, common_definitions):
+    test_control['get_sn_from_ui'] = common_definitions.SN_FROM_UI
+    test_control['get_sn_externally'] = common_definitions.SN_EXTERNALLY
+    test_control['test_sequences'] = common_definitions.TEST_SEQUENCES
+    test_control['running_mode'] = common_definitions.RUNNING_MODES
+    test_control['gage_rr'] = common_definitions.GAGE_RR
+
+
+def get_sn_from_ui(dut_sn_queue, common_definitions, logger):
     """Returns serial numbers from UI"""
 
     sequence_name = None
     test_cases = None
     operator = "Not available"
-    common_definitions = get_common_definitions()
     external_selection = False
     running_mode = common_definitions.RUNNING_MODES[0]
     gage_rr = common_definitions.GAGE_RR
@@ -144,10 +151,8 @@ def get_sn_from_ui(dut_sn_queue, logger):
     )
 
 
-def get_sn_externally(dut_sn_queue, logger):
+def get_sn_externally(dut_sn_queue, common_definitions, logger):
     """Returns serial numbers from external source (HTTP POST)"""
-
-    common_definitions = get_common_definitions()
 
     gaia = None
     if hasattr(common_definitions, 'SN_FROM_GAIA'):
@@ -329,6 +334,10 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
 
             common_definitions.handle_instrument_status(progress, logger)
 
+            # Update parameters of test_control
+            common_definitions.update_parameters(common_definitions, logger)
+            update_test_control(test_control, common_definitions)
+
             if db_handler:
                 db_handler.clean_db()
                 if isinstance(db_handler, MagicMock):
@@ -359,7 +368,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                     external_selection,
                     running_mode,
                     gage_rr
-                ) = get_sn_from_ui(dut_sn_queue, logger)
+                ) = get_sn_from_ui(dut_sn_queue, common_definitions, logger)
 
                 sequence_name_from_identify = common_definitions.identify_DUTs(
                     dut_sn_values, common_definitions.INSTRUMENTS, logger
@@ -389,7 +398,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                     dut_sn_values,
                     sequence_name,
                     operator_info
-                ) = get_sn_externally(dut_sn_queue, logger)
+                ) = get_sn_externally(dut_sn_queue, common_definitions, logger)
 
             else:
                 # Or from identify_DUTs function
@@ -422,6 +431,11 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
 
             # Fetch test case pool too
             test_pool = helpers.get_test_pool_definitions(logger)
+
+            # Update test limits and testcases
+            common_definitions.update_test_case_params(
+                common_definitions, sequence_name, test_definitions, logger
+            )
 
             # Remove skipped test_case_names from test list
             test_case_names = [t for t in test_definitions.TESTS if t not in test_definitions.SKIP]
