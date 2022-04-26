@@ -13,6 +13,9 @@ TEST_POSITIONS = [
 
 DB_HANDLER_NAME = 'test_data_db'
 
+# Update test limits and box parameters from database
+UPDATE_PARAMS_FROM_DATABASE = True
+
 # FlowControl.CONTINUE keeps testing even some test fails
 # FlowControl.STOP_ON_FAIL stops on first fail
 
