@@ -839,7 +839,6 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                             )
                     if not loop_testing:
                         logger.info("End loop testing.")
-                    loop_cycle += 1
                 if test_control['abort']:
                     loop_testing = False
 
@@ -862,6 +861,8 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                     send_message(str(e))
                     logger.error("Error while generating a test report")
                     logger.exception(e)
+
+                loop_cycle += 1
 
             if not common_definitions.LOOP_EXECUTION:
                 for test_position_name, test_position_instance in test_positions.items():
