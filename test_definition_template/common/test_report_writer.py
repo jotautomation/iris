@@ -16,6 +16,7 @@ def create_report(
     common_definitions,
     progress_reporter,
     loop_cycle=0,
+    last_result=False
 ):
     """Creates and stores report for DUT(s)"""
 

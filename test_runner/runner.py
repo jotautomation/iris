@@ -813,25 +813,6 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                 results["running_mode"] = running_mode
                 results["duration_s"] = round(time.monotonic() - start_time_monotonic, 2)
 
-                try:
-                    if not test_control['report_off']:
-                        common_definitions.create_report(
-                            json.dumps(results, indent=4, default=str),
-                            results,
-                            test_positions,
-                            test_definitions.PARAMETERS,
-                            db_handler,
-                            common_definitions,
-                            progress,
-                            loop_cycle
-                        )
-                except Exception as e:
-                    progress.set_progress(general_state="Error")
-                    send_message("Error while generating a test report")
-                    send_message(str(e))
-                    logger.error("Error while generating a test report")
-                    logger.exception(e)
-
                 if loop_testing:
                     common_definitions.finalize_loop(
                         common_definitions.INSTRUMENTS, logger, test_positions, sequence_name
@@ -861,6 +842,26 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                     loop_cycle += 1
                 if test_control['abort']:
                     loop_testing = False
+
+                try:
+                    if not test_control['report_off']:
+                        common_definitions.create_report(
+                            json.dumps(results, indent=4, default=str),
+                            results,
+                            test_positions,
+                            test_definitions.PARAMETERS,
+                            db_handler,
+                            common_definitions,
+                            progress,
+                            loop_cycle,
+                            not loop_testing,
+                        )
+                except Exception as e:
+                    progress.set_progress(general_state="Error")
+                    send_message("Error while generating a test report")
+                    send_message(str(e))
+                    logger.error("Error while generating a test report")
+                    logger.exception(e)
 
             if not common_definitions.LOOP_EXECUTION:
                 for test_position_name, test_position_instance in test_positions.items():
@@ -988,6 +989,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                     common_definitions,
                     progress,
                     0,
+                    True,
                 )
         except Exception as e:
             progress.set_progress(general_state="Error")
