@@ -316,6 +316,8 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
         "trial": 0,
         "completed": False
     }
+    gage_empty_progress = gage_progress.copy()
+    gage_rr = common_definitions.GAGE_RR
 
     # Start the actual test loop
     while not test_control['terminate']:
@@ -461,6 +463,8 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                     (gage_progress['trial'] + 1)
                 )
                 test_control['gage_rr'] = gage_rr
+            else:
+                gage_progress = gage_empty_progress.copy()
 
             def parallel_run(test_position_name, test_position_instance, sync_test_cases=False):
                 background_pre_tasks = {}
@@ -768,12 +772,14 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                         results[dut.serial_number] = {}
                     results[dut.serial_number][loop_cycle] = dut.test_cases.copy()
 
+                    loop_time = round(time.monotonic() - loop_start_time_monotonic, 2)
+
                     loop_stats = {}
                     loop_stats["start_time"] = str(loop_start_time)
                     loop_stats["start_time_epoch"] = str(loop_start_time_epoch)
                     loop_stats["end_time"] = str(datetime.datetime.now())
                     loop_stats["test_run_id"] = str(loop_test_run_id)
-                    loop_stats["duration_s"] = str(round(time.monotonic() - loop_start_time_monotonic, 2))
+                    loop_stats["duration_s"] = str(loop_time)
                     results[dut.serial_number][loop_cycle]['loop'] = loop_stats.copy()
 
                     if test_control['abort']:
@@ -812,6 +818,8 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                 results["test_run_id"] = test_run_id
                 results["running_mode"] = running_mode
                 results["duration_s"] = round(time.monotonic() - start_time_monotonic, 2)
+                if 'gage' in running_mode.lower():
+                    results["gage_rr"] = gage_progress.copy()
 
                 if loop_testing:
                     common_definitions.finalize_loop(
@@ -828,7 +836,8 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                         current_time = time.monotonic() - test_control['start_time_monotonic']
                         remaining_time = common_definitions.LOOP_TIME_IN_SECONDS - current_time
                         if remaining_time <= 0:
-                            logger.info("Current loop time %.2f s is over loop time limit %.2f.",
+                            logger.info(
+                                "Current loop time %.2f s is over loop time limit of %.2f s.",
                                 current_time,
                                 common_definitions.LOOP_TIME_IN_SECONDS
                             )
@@ -938,11 +947,11 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             if 'gage' in running_mode.lower():
                 results["gage_rr"] = gage_progress.copy()
 
-                if gage_progress['trial'] < gage_rr['trials'] - 1:
-                    gage_progress['trial'] += 1
-                elif gage_progress['dut'] < gage_rr['duts'] - 1:
+                if gage_progress['dut'] < gage_rr['duts'] - 1:
                     gage_progress['dut'] += 1
-                    gage_progress['trial'] = 0
+                elif gage_progress['trial'] < gage_rr['trials'] - 1:
+                    gage_progress['trial'] += 1
+                    gage_progress['dut'] = 0
                 elif gage_progress['operator'] < gage_rr['operators'] - 1:
                     gage_progress['operator'] += 1
                     gage_progress['dut'] = 0
