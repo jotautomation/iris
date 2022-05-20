@@ -38,6 +38,7 @@ def create_report(
     report_file_path.write_text(json2html.json2html.convert(json=report_json))
 
     # remove_old_reports()
+    report_path_dict = {}
 
     # Get root level items on report
     root_items = {}
@@ -55,6 +56,11 @@ def create_report(
             dut_sn = dut.serial_number
 
             result_db = {'serialnumber': dut_sn}
+
+            report_path = f"{dut_sn}_{dut.pass_fail_result}" if last_result else ""
+            result_db['report_path'] = report_path
+            if last_result:
+                report_path_dict.update({str(dut.test_position): report_path})
 
             result_db['loop_cycle'] = str(loop_cycle)
 
@@ -106,6 +112,8 @@ def create_report(
 
             if local_db is not None:
                 local_db.db_client[local_db.db_name].test_reports.insert_one(result_db)
+
+    progress_reporter.set_report_paths(report_path_dict)
 
 def remove_old_reports(timespan=7*24*60*60):
     report_base_path = (

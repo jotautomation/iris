@@ -244,6 +244,14 @@ class ProgressHandler(IrisRequestHandler):
 
         return json.dumps({'progress': self.test_control['progress']}, default=str)
 
+class ReportPathsHandler(IrisRequestHandler):
+    """Handles calls to /api/report_paths"""
+
+    def handle_get(self, host, user, *args):
+        """Returns report paths as json"""
+
+        return json.dumps(self.test_control['progress'].get('report_paths', {}), default=str)
+
 class TestTimeHandler(IrisRequestHandler):
     """Handles returning current and remaining test times to /api/test_time"""
 
@@ -499,6 +507,7 @@ def create_listener(
             (r"/api/history/search_bar_items", HistorySearchItems, init),
             (r"/api/history/search", SearchHistoryHandler, init),
             (r"/api/progress", ProgressHandler, init),
+            (r"/api/report_paths", ReportPathsHandler, init),
             (
                 r"/api/latest_result/(.*)",
                 NoCacheStaticFileHandler,

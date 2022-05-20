@@ -13,6 +13,7 @@ class ProgressReporter:
         self.progess_queue = progess_queue
         self.instrument_status = None
         self.version_info = None
+        self.report_paths = {}
 
     def set_instrument_status(self, instrument, status):
 
@@ -42,6 +43,10 @@ class ProgressReporter:
         else:
             self.operator_instructions = message
 
+        self._report_progress()
+
+    def set_report_paths(self, paths):
+        self.report_paths = paths
         self._report_progress()
 
     def _report_progress(self):
@@ -83,6 +88,7 @@ class ProgressReporter:
         progress_json['version_info'] = self.version_info
 
         progress_json['operator_instructions'] = self.operator_instructions
+        progress_json['report_paths'] = self.report_paths
 
         self.test_control['progress'] = progress_json
         self.progess_queue.put(json.dumps(progress_json, default=str))
