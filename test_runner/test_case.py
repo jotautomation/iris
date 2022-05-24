@@ -271,7 +271,7 @@ class TestCase(ABC):
 
     def handle_error(self, error):
 
-        self.logger.warn("Error at %s: %s", self.name, error)
+        self.logger.error("Error at %s: %s", self.name, error)
         self.result_handler(error)
 
         self.end_time = datetime.datetime.now()
