@@ -166,8 +166,10 @@ def get_sn_externally(dut_sn_queue, common_definitions, logger):
         while True:
             if len(gaia.duts) > 0:
                 logger.info("Gaia client has DUTs %s", gaia.duts)
-                duts_from_gaia = {"sequence": None}
+                duts_from_gaia = {"sequence": None, "order": ""}
                 for idx, position in enumerate(gaia.duts):
+                    if duts_from_gaia["order"] == "":
+                        duts_from_gaia["order"] = position.get("order", "")
                     for seq in common_definitions.TEST_SEQUENCES:
                         if seq == position.get("type"):
                             duts_from_gaia["sequence"] = seq
@@ -185,6 +187,7 @@ def get_sn_externally(dut_sn_queue, common_definitions, logger):
 
     while True:
         sequence_name = None
+        order = ""
         duts_sn = {
             test_position.name: {'sn': None} for test_position in common_definitions.TEST_POSITIONS
         }
@@ -210,6 +213,8 @@ def get_sn_externally(dut_sn_queue, common_definitions, logger):
             if 'sequence' in msg:
                 if msg['sequence'] in common_definitions.TEST_SEQUENCES:
                     sequence_name = msg['sequence']
+            if 'order' in msg:
+                order = msg['order']
         except (AttributeError, json.decoder.JSONDecodeError):
             pass
 
@@ -244,6 +249,7 @@ def get_sn_externally(dut_sn_queue, common_definitions, logger):
     return (
         duts_sn,
         sequence_name,
+        order,
         {"name": "external"}
     )
 
@@ -318,6 +324,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
     }
     gage_empty_progress = gage_progress.copy()
     gage_rr = common_definitions.GAGE_RR
+    order = ""
 
     # Start the actual test loop
     while not test_control['terminate']:
@@ -403,6 +410,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                 (
                     dut_sn_values,
                     sequence_name,
+                    order,
                     operator_info
                 ) = get_sn_externally(dut_sn_queue, common_definitions, logger)
 
@@ -411,7 +419,6 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                 (dut_sn_values, sequence_name, operator_info,) = common_definitions.identify_DUTs(
                     None, common_definitions.INSTRUMENTS, logger
                 )
-
             common_definitions.prepare_test(
                 common_definitions.INSTRUMENTS, logger, dut_sn_values, sequence_name
             )
@@ -423,7 +430,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                     test_positions[test_position].dut = None
                 else:
                     test_positions[test_position].dut = common_definitions.parse_dut_info(
-                        dut_info, test_position
+                        dut_info, test_position, order
                     )
 
             results = {

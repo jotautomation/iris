@@ -59,8 +59,8 @@ GAGE_RR = {
     "trials": 3,
 }
 
-def parse_dut_info(info, test_position):
-    return Dut(serial_number=info['sn'], test_position=test_position)
+def parse_dut_info(info, test_position, order=""):
+    return Dut(serial_number=info['sn'], test_position=test_position, order=order)
 
 
 def get_my_ip(ext_url):
