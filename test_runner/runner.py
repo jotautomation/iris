@@ -326,6 +326,8 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
     gage_rr = common_definitions.GAGE_RR
     order = ""
 
+    progress.set_progress(general_state="Initialized")
+
     # Start the actual test loop
     while not test_control['terminate']:
         # Wait until you are allowed to run again i.e. pause
@@ -476,6 +478,10 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             def parallel_run(test_position_name, test_position_instance, sync_test_cases=False):
                 background_pre_tasks = {}
                 background_post_tasks = []
+                if test_position_instance.test_case_instances:
+                    for test_case in test_position_instance.test_case_instances:
+                        logger.debug("Clear measurements for test case %s", test_case)
+                        test_position_instance.test_case_instances[test_case].clear_measurements()
 
                 # Run all test cases
                 for test_case_name in test_case_names:

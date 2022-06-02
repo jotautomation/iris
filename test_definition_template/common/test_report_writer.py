@@ -101,9 +101,9 @@ def create_report(
                     {
                         'name': test_case_name,
                         'measurements': measurements,
-                        'startTime': test_case['start_time'],
-                        'endTime': test_case['end_time'],
-                        'duration': test_case['duration_s'],
+                        'startTime': test_case.get('start_time', ''),
+                        'endTime': test_case.get('end_time', ''),
+                        'duration': test_case.get('duration_s', '')
                     }
                 )
 

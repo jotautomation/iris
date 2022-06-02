@@ -51,6 +51,9 @@ class TestCase(ABC):
     def initialize_measurements(self):
         self.dut.test_cases[self.name] = {'id': id(self), 'result': 'testing', 'measurements': {}}
 
+    def clear_measurements(self):
+        self.dut.test_cases[self.name] = {'id': id(self), 'result': 'not tested', 'measurements': {}}
+
     @abstractmethod
     def test(self):
         """Defines the test case."""
