@@ -52,7 +52,7 @@ def create_report(
 
         dut = value.dut
 
-        if dut is not None:
+        if dut is not None and not value.stop_reporting:
             dut_sn = dut.serial_number
 
             result_db = {'serialnumber': dut_sn}
