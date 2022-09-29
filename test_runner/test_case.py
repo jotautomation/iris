@@ -4,7 +4,7 @@ import inspect
 import logging
 import datetime
 import time
-from threading import Barrier
+from threading import Barrier, Event
 
 from enum import Enum
 from pymongo import MongoClient
@@ -32,7 +32,7 @@ class TestCase(ABC):
         self.dut = dut
         self.report_progress = report_progress
         self.limits = limits
-        self.logger = logging.getLogger('test_case')
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.start_time = None
         self.start_time_monotonic = None
         self.duration_s = None
@@ -42,6 +42,7 @@ class TestCase(ABC):
         self.db_handler = db_handler
         self.my_ip = common_definitions.IRIS_IP
         self.thread_barrier = None
+        self.thread_barrier_reset_event = None
         # Initialize measurement dictionary
         self.dut.test_cases[self.name] = {'id': id(self), 'result': 'testing', 'measurements': {}}
 
@@ -108,11 +109,24 @@ class TestCase(ABC):
                     )
                 )
             i_thread_wait = self.thread_barrier.wait(timeout)
+
             if i_thread_wait == 0:
                 self.logger.info(
                     "All threads have synced mid test case."
                 )
+                self.logger.info("Reset mid test case barrier.")
                 self.thread_barrier.reset()
+                if self.thread_barrier_reset_event is not None:
+                    self.logger.info("Set mid test case barrier reset event.")
+                    self.thread_barrier_reset_event.set()
+
+            if self.thread_barrier_reset_event is not None:
+                self.logger.info("Wait mid test case barrier reset event.")
+                self.thread_barrier_reset_event.wait(timeout)
+                if i_thread_wait == 0:
+                    self.logger.info("Clear mid test case barrier reset event.")
+                    self.thread_barrier_reset_event.clear()
+                    self.logger.info("Synching threads completed.")
 
     def result_handler(self, error=None):
         """Checks if test is pass or fail. Can be overridden if needed."""

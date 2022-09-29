@@ -553,6 +553,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                     test_instance.test_run_id = test_run_id
                     if sync_test_cases and all_pos_mid_test_cases_completed is not None:
                         test_instance.thread_barrier = all_pos_mid_test_cases_completed
+                        test_instance.thread_barrier_reset_event = mid_case_reset_event
                     try:
                         if is_pre_test:
                             # Start pre task and store it to dictionary
@@ -685,6 +686,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                 sync_test_cases = common_definitions.PARALLEL_EXECUTION == 'PER_TEST_CASE'
                 all_pos_test_cases_completed = None
                 all_pos_mid_test_cases_completed = None
+                mid_case_reset_event = None
 
                 loop_start_time_epoch = time.time()
                 loop_start_time = datetime.datetime.now()
@@ -730,6 +732,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                             all_pos_mid_test_cases_completed = threading.Barrier(
                                 len(background_test_runs)
                             )
+                            mid_case_reset_event = threading.Event()
                         if common_definitions.PARALLEL_SYNC_PER_TEST_CASE in ['COMPLETED', 'BOTH']:
                             all_pos_test_cases_completed = threading.Barrier(
                                 len(background_test_runs)
