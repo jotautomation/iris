@@ -475,204 +475,194 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             else:
                 gage_progress = gage_empty_progress.copy()
 
-            def parallel_run(test_position_name, test_position_instance, sync_test_cases=False):
+            def parallel_run(test_position_name, test_position_instance, test_case_name, sync_test_cases=False):
                 background_pre_tasks = {}
                 background_post_tasks = []
-                if test_position_instance.test_case_instances:
-                    for test_case in test_position_instance.test_case_instances:
-                        logger.debug("Clear measurements for test case %s", test_case)
-                        test_position_instance.test_case_instances[test_case].clear_measurements()
 
-                # Run all test cases
-                for test_case_name in test_case_names:
-                    # Loop for testing
+                if test_control['abort']:
+                    send_message("Test aborted")
+                    logger.warning("Test aborted")
+                    return
 
-                    if test_control['abort']:
+                if test_cases_override and test_case_name not in test_cases_override:
+                    return
 
-                        send_message("Test aborted")
-                        logger.warning("Test aborted")
-                        break
+                if not test_position_instance.dut or test_position_instance.stop_testing:
+                    return
 
-                    if test_cases_override and test_case_name not in test_cases_override:
-                        continue
+                is_pre_test = False
+                if '_pre' in test_case_name:
+                    is_pre_test = True
 
-                    is_pre_test = False
-                    if '_pre' in test_case_name:
-                        is_pre_test = True
+                test_case_name = test_case_name.replace('_pre', '').replace('_pre', '')
 
-                    test_case_name = test_case_name.replace('_pre', '').replace('_pre', '')
+                # Fill DUT data
+                test_position_instance.step = test_case_name
+                test_position_instance.status = 'testing'
 
-                    # Set sn to be none, if you don't want to run any test_case_names
-                    # for the test position but want to keep showing the position on the UI
-                    if not test_position_instance.dut or test_position_instance.stop_testing:
-                        continue
+                progress.set_progress(
+                    general_state='testing',
+                    test_positions=test_positions,
+                    sequence_name=sequence_name,
+                )
 
-                    # Fill DUT data
-                    test_position_instance.step = test_case_name
-                    test_position_instance.status = 'testing'
-
-                    progress.set_progress(
-                        general_state='testing',
-                        test_positions=test_positions,
-                        sequence_name=sequence_name,
-                    )
-
-                    def new_test_instance(the_case, the_position_instance):
-                        if hasattr(test_definitions, the_case):
-                            test_instance = getattr(test_definitions, the_case)(
-                                test_definitions.LIMITS,
-                                progress,
-                                the_position_instance.dut,
-                                test_definitions.PARAMETERS,
-                                db_handler,
-                                common_definitions,
-                            )
-                        elif hasattr(test_pool, the_case):
-                            test_instance = getattr(test_pool, the_case)(
-                                test_definitions.LIMITS,
-                                progress,
-                                the_position_instance.dut,
-                                test_definitions.PARAMETERS,
-                                db_handler,
-                                common_definitions,
-                            )
-                        else:
-                            raise exceptions.TestCaseNotFound(
-                                "Cannot find specified test case: " + the_case
-                            )
-                        return test_instance
-
-                    # Create test case instance
-                    if test_case_name not in test_position_instance.test_case_instances:
-
-                        test_position_instance.test_case_instances[
-                            test_case_name
-                        ] = new_test_instance(test_case_name, test_position_instance)
-                    test_instance = test_position_instance.test_case_instances[test_case_name]
-                    test_instance.test_position = test_position_instance
-                    test_instance.test_run_id = test_run_id
-                    if sync_test_cases and all_pos_mid_test_cases_completed is not None:
-                        test_instance.thread_barrier = all_pos_mid_test_cases_completed
-                        test_instance.thread_barrier_reset_event = mid_case_reset_event
-                    try:
-                        if is_pre_test:
-                            # Start pre task and store it to dictionary
-                            if test_case_name not in background_pre_tasks:
-                                background_pre_tasks[test_case_name] = {}
-
-                            background_pre_tasks[test_case_name][
-                                test_position_name
-                            ] = threading.Thread(target=test_instance.run_pre_test)
-                            background_pre_tasks[test_case_name][test_position_name].start()
-                        else:
-                            # Wait for pre task
-                            if (
-                                test_case_name in background_pre_tasks
-                                and test_position_name in background_pre_tasks[test_case_name]
-                            ):
-                                background_pre_tasks[test_case_name][test_position_name].join()
-                            else:
-                                # Or if pre task is not run, run it now
-                                test_instance.run_pre_test()
-
-                            test_position_instance.test_status = "Testing"
-                            progress.set_progress(
-                                general_state='testing',
-                                test_position=test_positions,
-                                sequence_name=sequence_name,
-                            )
-                            # Run the actual test case
-                            test_instance.run_test()
-
-                            # Synchronize parallel per test case testing
-                            if sync_test_cases and all_pos_test_cases_completed is not None:
-                                if all_pos_test_cases_completed.parties > 1:
-                                    logger.info(
-                                        "Test case completed thread for test position "
-                                        "%s is waiting for other %s threads.",
-                                        test_position_instance.name,
-                                        (
-                                            all_pos_test_cases_completed.parties -
-                                            all_pos_test_cases_completed.n_waiting
-                                            - 1
-                                        )
-                                    )
-                                i_thread_wait = all_pos_test_cases_completed.wait(
-                                    common_definitions.PARALLEL_SYNC_COMPLETED_TEST_TIMEOUT
-                                )
-                                if i_thread_wait == 0:
-                                    logger.info(
-                                        "All threads have synced test case completion."
-                                    )
-                                    all_pos_test_cases_completed.reset()
-
-                            progress.set_progress(
-                                general_state='testing',
-                                test_positions=test_positions,
-                                sequence_name=sequence_name,
-                            )
-
-                            test_position_instance.test_status = (
-                                "Aborting" if test_control['abort'] else "Idle"
-                            )
-
-                            # Start post task and store it to list
-
-                            bg_task = threading.Thread(target=test_instance.run_post_test)
-                            bg_task.start()
-
-                            background_post_tasks.append(bg_task)
-
-                    except Exception as err:
-
-                        if isinstance(err, gaiaclient.GaiaError):
-                            logger.error("Caught Gaia error, abort testing.")
-                            test_control['abort'] = True
-
-                        if sync_test_cases:
-                            if all_pos_mid_test_cases_completed is not None:
-                                logger.info(
-                                    "Abort mid test case thread barrier."
-                                )
-                                all_pos_mid_test_cases_completed.abort()
-                            if all_pos_test_cases_completed is not None:
-                                logger.info(
-                                    "Abort completed test case thread barrier."
-                                )
-                                all_pos_test_cases_completed.abort()
-
-                        trace = []
-                        trace_back = err.__traceback__
-                        while trace_back is not None:
-                            trace.append(
-                                {
-                                    "filename": trace_back.tb_frame.f_code.co_filename,
-                                    "name": trace_back.tb_frame.f_code.co_name,
-                                    "line": trace_back.tb_lineno,
-                                }
-                            )
-                            trace_back = trace_back.tb_next
-
-                        err_dict = {
-                            'type': type(err).__name__,
-                            'message': str(err),
-                            'trace': trace,
-                        }
-
-                        test_instance.handle_error(error=err_dict)
-
-                    else:
-                        # No error and no active tests
-                        test_position_instance.status = (
-                            "Aborting" if test_control['abort'] else "Idle"
+                def new_test_instance(the_case, the_position_instance):
+                    if hasattr(test_definitions, the_case):
+                        test_instance = getattr(test_definitions, the_case)(
+                            test_definitions.LIMITS,
+                            progress,
+                            the_position_instance.dut,
+                            test_definitions.PARAMETERS,
+                            db_handler,
+                            common_definitions,
                         )
-                        test_position_instance.step = None
+                    elif hasattr(test_pool, the_case):
+                        test_instance = getattr(test_pool, the_case)(
+                            test_definitions.LIMITS,
+                            progress,
+                            the_position_instance.dut,
+                            test_definitions.PARAMETERS,
+                            db_handler,
+                            common_definitions,
+                        )
+                    else:
+                        raise exceptions.TestCaseNotFound(
+                            "Cannot find specified test case: " + the_case
+                        )
+                    return test_instance
+
+                # Create test case instance
+                if test_case_name not in test_position_instance.test_case_instances:
+                    test_position_instance.test_case_instances[
+                        test_case_name
+                    ] = new_test_instance(test_case_name, test_position_instance)
+                test_instance = test_position_instance.test_case_instances[test_case_name]
+                test_instance.test_position = test_position_instance
+                test_instance.test_run_id = test_run_id
+
+                if sync_test_cases and all_pos_mid_test_cases_completed is not None:
+                    test_instance.thread_barrier = all_pos_mid_test_cases_completed
+                    test_instance.thread_barrier_reset_event = mid_case_reset_event
+
+                try:
+                    if is_pre_test:
+                        # Start pre task and store it to dictionary
+                        if test_case_name not in background_pre_tasks:
+                            background_pre_tasks[test_case_name] = {}
+
+                        background_pre_tasks[test_case_name][
+                            test_position_name
+                        ] = threading.Thread(target=test_instance.run_pre_test)
+                        background_pre_tasks[test_case_name][test_position_name].start()
+                    else:
+                        # Wait for pre task
+                        if (
+                            test_case_name in background_pre_tasks
+                            and test_position_name in background_pre_tasks[test_case_name]
+                        ):
+                            background_pre_tasks[test_case_name][test_position_name].join()
+                        else:
+                            # Or if pre task is not run, run it now
+                            test_instance.run_pre_test()
+
+                        test_position_instance.test_status = "Testing"
+                        progress.set_progress(
+                            general_state='testing',
+                            test_position=test_positions,
+                            sequence_name=sequence_name,
+                        )
+                        # Run the actual test case
+                        test_instance.run_test()
+
+                        # Synchronize parallel per test case testing
+                        if sync_test_cases and all_pos_test_cases_completed is not None:
+                            if all_pos_test_cases_completed.parties > 1:
+                                logger.info(
+                                    "Test case completed thread for test position "
+                                    "%s is waiting for other %s threads.",
+                                    test_position_instance.name,
+                                    (
+                                        all_pos_test_cases_completed.parties -
+                                        all_pos_test_cases_completed.n_waiting
+                                        - 1
+                                    )
+                                )
+                            i_thread_wait = all_pos_test_cases_completed.wait(
+                                common_definitions.PARALLEL_SYNC_COMPLETED_TEST_TIMEOUT
+                            )
+                            if i_thread_wait == 0:
+                                logger.info(
+                                    "All threads have synced test case completion."
+                                )
+                                all_pos_test_cases_completed.reset()
 
                         progress.set_progress(
                             general_state='testing',
                             test_positions=test_positions,
                             sequence_name=sequence_name,
                         )
+
+                        test_position_instance.test_status = (
+                            "Aborting" if test_control['abort'] else "Idle"
+                        )
+
+                        # Start post task and store it to list
+
+                        bg_task = threading.Thread(target=test_instance.run_post_test)
+                        bg_task.start()
+
+                        background_post_tasks.append(bg_task)
+
+                except Exception as err:
+
+                    if isinstance(err, gaiaclient.GaiaError):
+                        logger.error("Caught Gaia error, abort testing.")
+                        test_control['abort'] = True
+
+                    if sync_test_cases:
+                        if all_pos_mid_test_cases_completed is not None:
+                            logger.info(
+                                "Abort mid test case thread barrier."
+                            )
+                            all_pos_mid_test_cases_completed.abort()
+                        if all_pos_test_cases_completed is not None:
+                            logger.info(
+                                "Abort completed test case thread barrier."
+                            )
+                            all_pos_test_cases_completed.abort()
+
+                    trace = []
+                    trace_back = err.__traceback__
+                    while trace_back is not None:
+                        trace.append(
+                            {
+                                "filename": trace_back.tb_frame.f_code.co_filename,
+                                "name": trace_back.tb_frame.f_code.co_name,
+                                "line": trace_back.tb_lineno,
+                            }
+                        )
+                        trace_back = trace_back.tb_next
+
+                    err_dict = {
+                        'type': type(err).__name__,
+                        'message': str(err),
+                        'trace': trace,
+                    }
+
+                    test_instance.handle_error(error=err_dict)
+
+                else:
+                    # No error and no active tests
+                    test_position_instance.status = (
+                        "Aborting" if test_control['abort'] else "Idle"
+                    )
+                    test_position_instance.step = None
+
+                    progress.set_progress(
+                        general_state='testing',
+                        test_positions=test_positions,
+                        sequence_name=sequence_name,
+                    )
 
                 for task in background_post_tasks:
                     task.join()
@@ -702,54 +692,75 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                     )
 
                 if common_definitions.PARALLEL_EXECUTION in ['PARALLEL', 'PER_TEST_CASE']:
-                    # Run test cases for each DUT in test position fully parallel
                     for test_position_name, test_position_instance in test_positions.items():
-
                         if (
                             test_position_instance.stop_looping
+                            or test_position_instance.stop_testing
                             or test_position_instance.dut is None
                         ):
-                            test_position_instance.stop_looping = True
-                            logger.info(
-                                "Skip position %s from test loop",
-                                test_position_instance.name
-                            )
                             continue
 
-                        background_test_run = threading.Thread(
-                            target=parallel_run, args=(
-                                test_position_name,
-                                test_position_instance,
-                                sync_test_cases
-                            )
+                        if test_position_instance.test_case_instances:
+                            for test_case in test_position_instance.test_case_instances:
+                                logger.debug("Clear measurements for test case %s", test_case)
+                                test_position_instance.test_case_instances[test_case].clear_measurements()
+
+                    # Run test cases for each DUT in test position fully parallel
+                    for test_case in test_case_names:
+                        background_test_runs = []
+                        common_definitions.prepare_test_case(
+                            common_definitions.INSTRUMENTS, logger, test_positions, sequence_name, test_case
                         )
-                        background_test_runs.append(background_test_run)
 
-                    logger.debug("Amount of test threads: %s", len(background_test_runs))
+                        for test_position_name, test_position_instance in test_positions.items():
 
-                    if sync_test_cases:
-                        if common_definitions.PARALLEL_SYNC_PER_TEST_CASE in ['MID', 'BOTH']:
-                            all_pos_mid_test_cases_completed = threading.Barrier(
-                                len(background_test_runs)
+                            if (
+                                test_position_instance.stop_looping
+                                or test_position_instance.stop_testing
+                                or test_position_instance.dut is None
+                            ):
+                                test_position_instance.stop_looping = True
+                                logger.info(
+                                    "Skip position %s from test loop",
+                                    test_position_instance.name
+                                )
+                                continue
+
+                            background_test_run = threading.Thread(
+                                target=parallel_run, args=(
+                                    test_position_name,
+                                    test_position_instance,
+                                    test_case,
+                                    sync_test_cases
+                                )
                             )
-                            mid_case_reset_event = threading.Event()
-                        if common_definitions.PARALLEL_SYNC_PER_TEST_CASE in ['COMPLETED', 'BOTH']:
-                            all_pos_test_cases_completed = threading.Barrier(
-                                len(background_test_runs)
-                            )
-                        if (
-                            all_pos_mid_test_cases_completed is None and
-                            all_pos_test_cases_completed is None
-                        ):
-                            raise Exception(
-                                "Unknown common_definiton.PARALLEL_SYNC_PER_TEST_CASE parameter"
-                            )
+                            background_test_runs.append(background_test_run)
 
-                    for test_run in background_test_runs:
-                        test_run.start()
+                        logger.info("Amount of test threads: %s", len(background_test_runs))
 
-                    for test_run in background_test_runs:
-                        test_run.join()
+                        if sync_test_cases:
+                            if common_definitions.PARALLEL_SYNC_PER_TEST_CASE in ['MID', 'BOTH']:
+                                all_pos_mid_test_cases_completed = threading.Barrier(
+                                    len(background_test_runs)
+                                )
+                                mid_case_reset_event = threading.Event()
+                            if common_definitions.PARALLEL_SYNC_PER_TEST_CASE in ['COMPLETED', 'BOTH']:
+                                all_pos_test_cases_completed = threading.Barrier(
+                                    len(background_test_runs)
+                                )
+                            if (
+                                all_pos_mid_test_cases_completed is None and
+                                all_pos_test_cases_completed is None
+                            ):
+                                raise Exception(
+                                    "Unknown common_definiton.PARALLEL_SYNC_PER_TEST_CASE parameter"
+                                )
+
+                        for test_run in background_test_runs:
+                            test_run.start()
+
+                        for test_run in background_test_runs:
+                            test_run.join()
 
                 elif common_definitions.PARALLEL_EXECUTION == 'PER_DUT':
 
@@ -769,11 +780,13 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                             )
                             continue
 
-                        parallel_run(
-                            test_position_name,
-                            test_position_instance,
-                            sync_test_cases
-                        )
+                        for test_case in test_case_names:
+                            parallel_run(
+                                test_position_name,
+                                test_position_instance,
+                                test_case,
+                                sync_test_cases
+                            )
 
                 else:
                     raise Exception("Unknown test test_control.parallel_execution parameter")

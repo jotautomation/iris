@@ -5,7 +5,7 @@ def boot_up(instruments, logger):
     logger.info("Executing initialization")
 
 
-def finalize_test(overallresult, duts, instruments, logger):
+def finalize_test(overallresult, test_positions, instruments, logger):
     logger.info("Testing ready. Release DUT(s) on Gaia")
 
     if overallresult == 'pass':
@@ -17,17 +17,20 @@ def finalize_test(overallresult, duts, instruments, logger):
 
 
 def test_aborted(instruments, logger):
-    finalize_test(False, None, instruments, logger)
+    finalize_test("abort", None, instruments, logger)
 
 
 def prepare_test(instruments, logger, dut_sn_values, sequence_name):
     logger.info("Waiting G5 to get ready for next (or first) test run")
     instruments['gaia'].wait_ready()
 
-def prepare_loop(instruments, logger, duts, sequence_name):
+def prepare_test_case(instruments, logger, test_positions, sequence_name, test_case_name):
     pass
 
-def finalize_loop(instruments, logger, duts, sequence_name):
+def prepare_loop(instruments, logger, test_positions, sequence_name):
+    pass
+
+def finalize_loop(instruments, logger, test_positions, sequence_name):
     pass
 
 def identify_DUTs(dut_sn, instruments, logger):

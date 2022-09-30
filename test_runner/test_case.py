@@ -4,7 +4,6 @@ import inspect
 import logging
 import datetime
 import time
-from threading import Barrier, Event
 
 from enum import Enum
 from pymongo import MongoClient
@@ -126,7 +125,7 @@ class TestCase(ABC):
                 if i_thread_wait == 0:
                     self.logger.info("Clear mid test case barrier reset event.")
                     self.thread_barrier_reset_event.clear()
-                    self.logger.info("Synching threads completed.")
+                    self.logger.info("Syncing threads completed.")
 
     def result_handler(self, error=None):
         """Checks if test is pass or fail. Can be overridden if needed."""
