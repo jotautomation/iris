@@ -6,7 +6,6 @@ import datetime
 import time
 
 from enum import Enum
-from pymongo import MongoClient
 from pathlib import Path
 
 
