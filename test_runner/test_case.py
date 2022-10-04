@@ -40,7 +40,7 @@ class TestCase(ABC):
         self.db_handler = db_handler
         self.my_ip = common_definitions.IRIS_IP
         self.thread_barrier = None
-        self.thread_barrier_reset_event = None
+        self.thread_barrier_reset = None
         # Initialize measurement dictionary
         self.dut.test_cases[self.name] = {'id': id(self), 'result': 'testing', 'measurements': {}}
 
@@ -114,16 +114,16 @@ class TestCase(ABC):
                 )
                 self.logger.info("Reset mid test case barrier.")
                 self.thread_barrier.reset()
-                if self.thread_barrier_reset_event is not None:
-                    self.logger.info("Set mid test case barrier reset event.")
-                    self.thread_barrier_reset_event.set()
 
-            if self.thread_barrier_reset_event is not None:
-                self.logger.info("Wait mid test case barrier reset event.")
-                self.thread_barrier_reset_event.wait(timeout)
-                if i_thread_wait == 0:
-                    self.logger.info("Clear mid test case barrier reset event.")
-                    self.thread_barrier_reset_event.clear()
+            if self.thread_barrier_reset is not None:
+                i_thread_wait_reset = self.thread_barrier_reset.wait(timeout)
+
+                if i_thread_wait_reset == 0:
+                    self.logger.info(
+                        "All threads have synced mid test case reset barrier."
+                    )
+                    self.logger.info("Reset mid test case reset barrier.")
+                    self.thread_barrier_reset.reset()
                     self.logger.info("Syncing threads completed.")
 
     def result_handler(self, error=None):

@@ -542,7 +542,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
 
                 if sync_test_cases and all_pos_mid_test_cases_completed is not None:
                     test_instance.thread_barrier = all_pos_mid_test_cases_completed
-                    test_instance.thread_barrier_reset_event = mid_case_reset_event
+                    test_instance.thread_barrier_reset = mid_case_reset_barrier
 
                 try:
                     if is_pre_test:
@@ -676,7 +676,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                 sync_test_cases = common_definitions.PARALLEL_EXECUTION == 'PER_TEST_CASE'
                 all_pos_test_cases_completed = None
                 all_pos_mid_test_cases_completed = None
-                mid_case_reset_event = None
+                mid_case_reset_barrier = None
 
                 loop_start_time_epoch = time.time()
                 loop_start_time = datetime.datetime.now()
@@ -736,17 +736,20 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                             )
                             background_test_runs.append(background_test_run)
 
-                        logger.info("Amount of test threads: %s", len(background_test_runs))
+                        amount_threads = len(background_test_runs)
+                        logger.info("Amount of test threads: %s", amount_threads)
 
                         if sync_test_cases:
                             if common_definitions.PARALLEL_SYNC_PER_TEST_CASE in ['MID', 'BOTH']:
                                 all_pos_mid_test_cases_completed = threading.Barrier(
-                                    len(background_test_runs)
+                                    amount_threads
                                 )
-                                mid_case_reset_event = threading.Event()
+                                mid_case_reset_barrier = threading.Barrier(
+                                    amount_threads
+                                )
                             if common_definitions.PARALLEL_SYNC_PER_TEST_CASE in ['COMPLETED', 'BOTH']:
                                 all_pos_test_cases_completed = threading.Barrier(
-                                    len(background_test_runs)
+                                    amount_threads
                                 )
                             if (
                                 all_pos_mid_test_cases_completed is None and
