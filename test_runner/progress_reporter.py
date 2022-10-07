@@ -1,5 +1,5 @@
 import json
-
+from threading import Lock
 
 class ProgressReporter:
     def __init__(self, test_control, progess_queue):
@@ -14,6 +14,7 @@ class ProgressReporter:
         self.instrument_status = None
         self.version_info = None
         self.report_paths = {}
+        self.lock = Lock()
 
     def set_instrument_status(self, instrument, status):
 
@@ -32,10 +33,11 @@ class ProgressReporter:
         self._report_progress()
 
     def set_progress(self, **kwargs):
-        # Store variable
-        self.__dict__.update(kwargs)
-        # Send new progress json
-        self._report_progress()
+        with self.lock:
+            # Store variable
+            self.__dict__.update(kwargs)
+            # Send new progress json
+            self._report_progress()
 
     def show_operator_instructions(self, message, append=False):
         if append and self.operator_instructions:

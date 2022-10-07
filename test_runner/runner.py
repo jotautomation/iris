@@ -496,16 +496,6 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
 
                 test_case_name = test_case_name.replace('_pre', '').replace('_pre', '')
 
-                # Fill DUT data
-                test_position_instance.step = test_case_name
-                test_position_instance.status = 'testing'
-
-                progress.set_progress(
-                    general_state='testing',
-                    test_positions=test_positions,
-                    sequence_name=sequence_name,
-                )
-
                 def new_test_instance(the_case, the_position_instance):
                     if hasattr(test_definitions, the_case):
                         test_instance = getattr(test_definitions, the_case)(
@@ -726,6 +716,10 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                                 )
                                 continue
 
+                            # Fill DUT data
+                            test_position_instance.step = test_case
+                            test_position_instance.status = 'testing'
+
                             background_test_run = threading.Thread(
                                 target=parallel_run, args=(
                                     test_position_name,
@@ -758,6 +752,12 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                                 raise Exception(
                                     "Unknown common_definiton.PARALLEL_SYNC_PER_TEST_CASE parameter"
                                 )
+
+                        progress.set_progress(
+                            general_state='testing',
+                            test_positions=test_positions,
+                            sequence_name=sequence_name,
+                        )
 
                         for test_run in background_test_runs:
                             test_run.start()
