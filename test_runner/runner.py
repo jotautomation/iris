@@ -154,34 +154,37 @@ def get_sn_from_ui(dut_sn_queue, common_definitions, logger):
 def get_sn_externally(dut_sn_queue, common_definitions, logger):
     """Returns serial numbers from external source (HTTP POST)"""
 
-    gaia = None
+    inst = None
     if hasattr(common_definitions, 'SN_FROM_GAIA'):
         if common_definitions.SN_FROM_GAIA:
             for instrument in common_definitions.INSTRUMENTS.values():
                 if isinstance(instrument, gaiaclient.Client):
-                    gaia = instrument
+                    inst = instrument
                     break
+    if inst is None and hasattr(common_definitions, 'SN_FROM_INSTRUMENT') and hasattr(common_definitions, 'SN_INSTRUMENT_NAME'):
+        if common_definitions.SN_FROM_INSTRUMENT and common_definitions.SN_INSTRUMENT_NAME:
+            inst = common_definitions.INSTRUMENTS[common_definitions.SN_INSTRUMENT_NAME]
 
-    def _get_sn_from_gaia():
+    def _get_sn_from_instrument():
         while True:
-            if len(gaia.duts) > 0:
-                logger.info("Gaia client has DUTs %s", gaia.duts)
-                duts_from_gaia = {"sequence": None, "order": ""}
-                for idx, position in enumerate(gaia.duts):
-                    if duts_from_gaia["order"] == "":
-                        duts_from_gaia["order"] = position.get("order", "")
+            if len(inst.duts) > 0:
+                logger.info("Instrument has DUTs %s", inst.duts)
+                duts_from_inst = {"sequence": None, "order": ""}
+                for idx, position in enumerate(inst.duts):
+                    if duts_from_inst["order"] == "":
+                        duts_from_inst["order"] = position.get("order", "")
                     for seq in common_definitions.TEST_SEQUENCES:
                         if seq == position.get("type"):
-                            duts_from_gaia["sequence"] = seq
+                            duts_from_inst["sequence"] = seq
                             break
-                    if not duts_from_gaia["sequence"]:
+                    if not duts_from_inst["sequence"]:
                         for seq in common_definitions.TEST_SEQUENCES:
                             if seq in position.get("type"):
-                                duts_from_gaia["sequence"] = seq
+                                duts_from_inst["sequence"] = seq
                                 break
-                    duts_from_gaia[str(common_definitions.TEST_POSITIONS[idx])] = position.get("SN")
-                logger.info("Gaia client DUTs modified for Iris: %s", duts_from_gaia)
-                dut_sn_queue.put(json.dumps(duts_from_gaia, default=str))
+                    duts_from_inst[str(common_definitions.TEST_POSITIONS[idx])] = position.get("SN")
+                logger.info("Instrument DUTs modified for Iris: %s", duts_from_inst)
+                dut_sn_queue.put(json.dumps(duts_from_inst, default=str))
                 break
             time.sleep(1)
 
@@ -198,8 +201,8 @@ def get_sn_externally(dut_sn_queue, common_definitions, logger):
             + ", ".join([str(t) for t in common_definitions.TEST_POSITIONS])
         )
 
-        if gaia is not None:
-            _get_sn_from_gaia()
+        if inst is not None:
+            _get_sn_from_instrument()
 
         msg = dut_sn_queue.get()
         try:

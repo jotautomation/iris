@@ -40,8 +40,9 @@ SN_FROM_UI = True
 
 # Wait DUT from external source
 SN_EXTERNALLY = False
-# Use Gaia client as external source
-SN_FROM_GAIA = False
+# Use instrument (gaia) to receive DUT info
+SN_FROM_INSTRUMENT = False
+SN_INSTRUMENT_NAME = "gaia"
 
 # Show operator introductions
 OPERATOR_INTRODUCTIONS = False

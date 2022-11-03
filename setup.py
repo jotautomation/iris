@@ -54,7 +54,7 @@ get_ui()
 
 setup(
     name="jot-iris",
-    version="1.20.1",
+    version="1.20.2",
     license="MIT License",
     author="JOT Automation Ltd.",
     author_email="info@jotautomation.com",
