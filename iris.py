@@ -81,6 +81,12 @@ PARSER.add_argument(
 )
 
 PARSER.add_argument('-p', '--port', help="Set port to listen", type=int)
+PARSER.add_argument(
+    "-plc",
+    "--plc-module",
+    help=r"""Starting plc instrument to specific module and station. Usage: iris.py -plc MODULE STATION""",
+    nargs='+'
+)
 
 ARGS = PARSER.parse_args()
 
@@ -180,6 +186,9 @@ if ARGS.single_run:
 
 if ARGS.report_off:
     CONTROL['report_off'] = True
+
+if ARGS.plc_module:
+    CONTROL['plc_module'] = ARGS.plc_module
 
 DUT_SN_QUEUE = Queue()
 MESSAGE_QUEUE = Queue()
