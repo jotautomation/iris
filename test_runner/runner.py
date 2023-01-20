@@ -887,7 +887,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                     loop_testing = False
 
                 try:
-                    if not test_control['report_off']:
+                    if not test_control['report_off'] and common_definitions.LOOP_EXECUTION:
                         common_definitions.create_report(
                             json.dumps(results, indent=4, default=str),
                             results,
