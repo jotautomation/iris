@@ -450,6 +450,15 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             # Fetch test case pool too
             test_pool = helpers.get_test_pool_definitions(logger)
 
+            if hasattr(test_definitions, "LIMITS") and hasattr(test_pool, "LIMITS"):
+                logger.info("Use test pool limits as base limits and update them with sequence '%s' limits.", sequence_name)
+                seq_limits = test_definitions.LIMITS.copy()
+                test_definitions.LIMITS = test_pool.LIMITS.copy()
+                test_definitions.LIMITS.update(seq_limits)
+            elif not hasattr(test_definitions, "LIMITS") and hasattr(test_pool, "LIMITS"):
+                logger.info("Sequence '%s' has no defined limits. Use test pool limits as base limits.", sequence_name)
+                setattr(test_definitions, "LIMITS", test_pool.LIMITS)
+
             # Update test limits and testcases
             common_definitions.update_test_case_params(
                 common_definitions, sequence_name, test_definitions, logger
