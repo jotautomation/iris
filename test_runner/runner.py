@@ -478,9 +478,10 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             else:
                 gage_progress = gage_empty_progress.copy()
 
+            background_pre_tasks = {}
+            background_post_tasks = []
+
             def parallel_run(test_position_name, test_position_instance, test_case_name, sync_test_cases=False):
-                background_pre_tasks = {}
-                background_post_tasks = []
 
                 if test_control['abort']:
                     send_message("Test aborted")
@@ -657,9 +658,6 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                         sequence_name=sequence_name,
                     )
 
-                for task in background_post_tasks:
-                    task.join()
-
             loop_testing = True  # Execute at least one loop
             loop_cycle = 1
             while loop_testing:
@@ -796,6 +794,9 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
 
                 else:
                     raise Exception("Unknown test test_control.parallel_execution parameter")
+
+                for task in background_post_tasks:
+                    task.join()
 
                 for test_position_name, test_position_instance in test_positions.items():
 
