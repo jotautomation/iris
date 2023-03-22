@@ -41,8 +41,7 @@ class TestCase(ABC):
         self.my_ip = common_definitions.IRIS_IP
         self.thread_barrier = None
         self.thread_barrier_reset = None
-        # Initialize measurement dictionary
-        self.dut.test_cases[self.name] = {'id': id(self), 'result': 'testing', 'measurements': {}}
+        self.initialize_measurements()
 
     def show_operator_instructions(self, message, append=False):
         self.report_progress.show_operator_instructions(message, append)
@@ -137,6 +136,7 @@ class TestCase(ABC):
             pass_fail_result = 'pass'
             limit = None
             unit = None
+            optional = False
             try:
                 case['measurements'][measurement_name]["error"] = None
 
@@ -153,14 +153,17 @@ class TestCase(ABC):
                     ) else 'fail'
 
                     unit = self.limits[self.name][measurement_name].get('unit', '')
+                    optional = self.limits[self.name][measurement_name].get('optional', False)
 
                 case['measurements'][measurement_name]["unit"] = unit
+                case['measurements'][measurement_name]["optional"] = optional
                 case['measurements'][measurement_name]["limit"] = limit
                 case['measurements'][measurement_name]["result"] = pass_fail_result
 
             except Exception as exp:
                 case['result'] = 'error'
                 case['measurements'][measurement_name]["unit"] = unit
+                case['measurements'][measurement_name]["optional"] = optional
                 case['measurements'][measurement_name]["limit"] = limit
                 case['measurements'][measurement_name]["result"] = "ErrorOnLimits"
                 case['measurements'][measurement_name]["error"] = str(type(exp)) + ': ' + str(exp)
@@ -223,7 +226,9 @@ class TestCase(ABC):
 
             for limit in self.limits[self.name]:
 
-                if 'optional' in self.limits[self.name] and self.limits[self.name]['optional']:
+                if (('optional' in self.limits[self.name] and self.limits[self.name]['optional'])
+                    or ('optional' in self.limits[self.name][limit] and self.limits[self.name][limit]['optional'])
+                ):
                     continue
 
                 if (
