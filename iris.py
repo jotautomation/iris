@@ -91,7 +91,7 @@ PARSER.add_argument(
 PARSER.add_argument(
     "-ext",
     "--extension_log_path",
-    help=r"""Adding extension to log path. Usage: iris.py -ext plc_path ...""",
+    help=r"""Adding extension to log path. Usage: iris.py -ext log_path ...""",
     nargs='+'
 )
 
