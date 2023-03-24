@@ -88,15 +88,35 @@ PARSER.add_argument(
     nargs='+'
 )
 
+PARSER.add_argument(
+    "-ext",
+    "--extension_log_path",
+    help=r"""Adding extension to log path. Usage: iris.py -ext plc_path ...""",
+    nargs='+'
+)
+
 ARGS = PARSER.parse_args()
 
 
 LOG_SETTINGS_FILE = pathlib.Path('test_definitions/common/logging.yaml')
 
+def add_extension(path):
+    index = path.rfind("/")
+    return path[:index] + ARGS.extension_log_path[0] + path[index:]
 
 if LOG_SETTINGS_FILE.is_file():
     with LOG_SETTINGS_FILE.open() as _f:
         LOG_CONF = yaml.safe_load(_f.read())
+    if ARGS.extension_log_path:
+        if 'info_file_handler' in LOG_CONF['handlers']:
+            LOG_CONF['handlers']['info_file_handler']['filename'] = add_extension(LOG_CONF['handlers']['info_file_handler']['filename'])
+        if 'debug_file_handler' in LOG_CONF['handlers']:
+            LOG_CONF['handlers']['debug_file_handler']['filename'] = add_extension(LOG_CONF['handlers']['debug_file_handler']['filename'])
+        if 'error_file_handler' in LOG_CONF['handlers']:
+            LOG_CONF['handlers']['error_file_handler']['filename'] = add_extension(LOG_CONF['handlers']['error_file_handler']['filename'])
+        if 'test_case_file_handler' in LOG_CONF['handlers']:
+            LOG_CONF['handlers']['test_case_file_handler']['filename'] = add_extension(LOG_CONF['handlers']['test_case_file_handler']['filename'])
+        LOG_CONF['log_file_path'] = add_extension(LOG_CONF['log_file_path'])
     pathlib.Path(LOG_CONF['log_file_path']).mkdir(parents=True, exist_ok=True)
     logging.config.dictConfig(LOG_CONF)
     logging.info('Logging with configuration from %s', LOG_SETTINGS_FILE)
@@ -189,6 +209,9 @@ if ARGS.report_off:
 
 if ARGS.instrument_args:
     CONTROL['instrument_args'] = ARGS.instrument_args
+
+if ARGS.extension_log_path:
+    CONTROL['extension_log_path'] = ARGS.extension_log_path
 
 DUT_SN_QUEUE = Queue()
 MESSAGE_QUEUE = Queue()
