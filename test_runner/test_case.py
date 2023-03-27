@@ -160,13 +160,14 @@ class TestCase(ABC):
                 case['measurements'][measurement_name]["limit"] = limit
                 case['measurements'][measurement_name]["result"] = pass_fail_result
 
-            except Exception as exp:
+            except Exception as ex:
+                self.logger.exception(ex)
                 case['result'] = 'error'
                 case['measurements'][measurement_name]["unit"] = unit
                 case['measurements'][measurement_name]["optional"] = optional
                 case['measurements'][measurement_name]["limit"] = limit
                 case['measurements'][measurement_name]["result"] = "ErrorOnLimits"
-                case['measurements'][measurement_name]["error"] = str(type(exp)) + ': ' + str(exp)
+                case['measurements'][measurement_name]["error"] = str(type(ex)) + ': ' + str(ex)
 
             finally:
                 self.set_pass_fail_result(pass_fail_result)
