@@ -148,12 +148,12 @@ class TestCase(ABC):
                         inspect.getsource(self.limits[self.name][measurement_name]['limit']),
                     )
 
+                    unit = self.limits[self.name][measurement_name].get('unit', '')
+                    optional = self.limits[self.name][measurement_name].get('optional', False)
+
                     pass_fail_result = 'pass' if self.limits[self.name][measurement_name]['limit'](
                         measurement_value
                     ) else 'fail'
-
-                    unit = self.limits[self.name][measurement_name].get('unit', '')
-                    optional = self.limits[self.name][measurement_name].get('optional', False)
 
                 case['measurements'][measurement_name]["unit"] = unit
                 case['measurements'][measurement_name]["optional"] = optional
@@ -170,7 +170,8 @@ class TestCase(ABC):
                 case['measurements'][measurement_name]["error"] = str(type(ex)) + ': ' + str(ex)
 
             finally:
-                self.set_pass_fail_result(pass_fail_result)
+                if not optional:
+                    self.set_pass_fail_result(pass_fail_result)
 
 
         if error:
