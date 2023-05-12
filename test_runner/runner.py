@@ -450,11 +450,28 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             # Fetch test case pool too
             test_pool = helpers.get_test_pool_definitions(logger)
 
+            def update_dicts(dict1, dict2):
+                if isinstance(dict1, dict):
+                    for key, value in dict1.items():
+                        if type(value) == dict:
+                            if key in dict2 and isinstance(dict2[key], dict):
+                                update_dicts(dict1[key], dict2[key])
+                        elif isinstance(dict2, dict):
+                            if key in dict2:
+                                dict1[key] = dict2[key]
+
+                if isinstance(dict2, dict):
+                    for key, value in dict2.items():
+                        if not key in dict1:
+                            dict1[key] = value
+
+                return dict1
+
             if hasattr(test_definitions, "LIMITS") and hasattr(test_pool, "LIMITS"):
                 logger.info("Use test pool limits as base limits and update them with sequence '%s' limits.", sequence_name)
                 seq_limits = test_definitions.LIMITS.copy()
                 test_definitions.LIMITS = test_pool.LIMITS.copy()
-                test_definitions.LIMITS.update(seq_limits)
+                test_definitions.LIMITS = update_dicts(test_definitions.LIMITS, seq_limits)
             elif not hasattr(test_definitions, "LIMITS") and hasattr(test_pool, "LIMITS"):
                 logger.info("Sequence '%s' has no defined limits. Use test pool limits as base limits.", sequence_name)
                 setattr(test_definitions, "LIMITS", test_pool.LIMITS)
