@@ -487,7 +487,7 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             start_time_epoch = time.time()
             start_time = datetime.datetime.now()
             start_time_monotonic = time.monotonic()
-            test_run_id = str(start_time_epoch).replace('.', '_')
+            test_run_id = common_definitions.get_test_run_id(start_time_epoch)
             test_control['start_time_monotonic'] = start_time_monotonic
             test_control['stop_time_monotonic'] = 0
             test_control['stop_time_timestamp'] = ''

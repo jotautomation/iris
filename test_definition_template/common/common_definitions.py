@@ -69,6 +69,8 @@ def get_my_ip(ext_url):
         sock.connect(ext_url)
         return sock.getsockname()[0]
 
+def get_test_run_id(start_time_epoch):
+    return str(start_time_epoch).replace('.', '_')
 
 # Use here the external url that want's to connect to to Iris
 IRIS_IP = get_my_ip(("8.8.8.8", 80))
