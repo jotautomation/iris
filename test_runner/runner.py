@@ -980,7 +980,6 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
             test_control['stop_time_monotonic'] = time.monotonic()
             test_control['stop_time_timestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-            # Don't create report if aborted
             if test_control['abort']:
                 logger.warning("Test aborted. Finalize test as fail.")
                 progress.set_progress(
@@ -990,17 +989,19 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                     sequence_name=sequence_name,
                 )
                 common_definitions.test_aborted(common_definitions.INSTRUMENTS, logger)
-                continue
+                if test_control['report_off']:
+                    continue
 
-            progress.set_progress(
-                general_state='finalize',
-                test_positions=test_positions,
-                overall_result=dut.pass_fail_result,
-                sequence_name=sequence_name,
-            )
-            common_definitions.finalize_test(
-                dut.pass_fail_result, test_positions, common_definitions.INSTRUMENTS, logger
-            )
+            else:
+                progress.set_progress(
+                    general_state='finalize',
+                    test_positions=test_positions,
+                    overall_result=dut.pass_fail_result,
+                    sequence_name=sequence_name,
+                )
+                common_definitions.finalize_test(
+                    dut.pass_fail_result, test_positions, common_definitions.INSTRUMENTS, logger
+                )
 
             results["start_time"] = start_time
             results["start_time_epoch"] = start_time_epoch
@@ -1032,15 +1033,15 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
                 )
 
         except exceptions.IrisError as ex:
-            # TODO: write error to report
             logger.exception("Error on testsequence")
             logger.exception(str(ex))
-            continue
+            if test_control['report_off']:
+                continue
         except Exception as ex:
-            # TODO: write error to report
             logger.exception("Error on testsequence")
             logger.exception(str(ex))
-            continue
+            if test_control['report_off']:
+                continue
 
         else:
             pass
