@@ -1048,14 +1048,15 @@ def run_test_runner(test_control, message_queue, progess_queue, dut_sn_queue, li
         finally:
             pass
 
-        progress.set_progress(
-            general_state="Create test report",
-            test_positions=test_positions,
-            overall_result=dut.pass_fail_result,
-            sequence_name=sequence_name,
-        )
         try:
             if not test_control['report_off'] and not common_definitions.LOOP_EXECUTION:
+                progress.set_progress(
+                    general_state="Create test report",
+                    test_positions=test_positions,
+                    overall_result=dut.pass_fail_result,
+                    sequence_name=sequence_name,
+                )
+
                 common_definitions.create_report(
                     json.dumps(results, indent=4, default=str),
                     results,
